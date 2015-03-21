@@ -1,0 +1,15 @@
+
+State Machine - |project|done
+Name done.11 done.10 done.01 done.00 
+done.00 0 0 0 0 
+done.01 0 0 1 1 
+done.10 0 1 0 1 
+done.11 1 0 0 1 
+
+State Machine - |project|currentState
+Name currentState.WIN currentState.MOVE currentState.CLEAR currentState.DRAW currentState.IDLE 
+currentState.CLEAR 0 0 0 0 0 
+currentState.DRAW 0 0 1 1 0 
+currentState.IDLE 0 0 1 0 1 
+currentState.MOVE 0 1 1 0 0 
+currentState.WIN 1 0 1 0 0 

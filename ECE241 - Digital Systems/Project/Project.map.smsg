@@ -1,0 +1,2 @@
+Info (10281): Verilog HDL Declaration information at Project.v(93): object "move" differs only in case from object "MOVE" in the same scope
+Info (10281): Verilog HDL Declaration information at Project.v(96): object "WIN" differs only in case from object "win" in the same scope

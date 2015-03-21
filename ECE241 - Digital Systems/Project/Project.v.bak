@@ -1,0 +1,362 @@
+// Animation
+
+module project
+	(
+		CLOCK_50,						//	On Board 50 MHz
+		SW,
+		KEY,							//	Push Button[3:0]
+		VGA_CLK,   						//	VGA Clock
+		VGA_HS,							//	VGA H_SYNC
+		VGA_VS,							//	VGA V_SYNC
+		VGA_BLANK,						//	VGA BLANK
+		VGA_SYNC,						//	VGA SYNC
+		VGA_R,   						//	VGA Red[9:0]
+		VGA_G,	 						//	VGA Green[9:0]
+		VGA_B,   						//	VGA Blue[9:0]
+		LEDR,								// LEDR
+		LEDG
+	);
+
+	input			CLOCK_50;				//	50 MHz
+	input [17:0] SW;
+	input	[3:0]	KEY;					//	Button[3:0]
+	output			VGA_CLK;   				//	VGA Clock
+	output			VGA_HS;					//	VGA H_SYNC
+	output			VGA_VS;					//	VGA V_SYNC
+	output			VGA_BLANK;				//	VGA BLANK
+	output			VGA_SYNC;				//	VGA SYNC
+	output	[9:0]	VGA_R;   				//	VGA Red[9:0]
+	output	[9:0]	VGA_G;	 				//	VGA Green[9:0]
+	output	[9:0]	VGA_B;   				//	VGA Blue[9:0]
+	output [17:0] LEDR;
+	output reg [3:0] LEDG;
+	
+	wire resetn;
+	assign resetn = KEY[0];
+	
+	// Create an Instance of a VGA controller - there can be only one!
+	// Define the number of colours as well as the initial background
+	// image file (.MIF) for the controller.
+	vga_adapter VGA(
+			.resetn(resetn),
+			.clock(CLOCK_50),
+			.colour(currentColour),
+			.x(x),
+			.y(y),
+			.plot(write),
+			/* Signals for the DAC to drive the monitor. */
+			.VGA_R(VGA_R),
+			.VGA_G(VGA_G),
+			.VGA_B(VGA_B),
+			.VGA_HS(VGA_HS),
+			.VGA_VS(VGA_VS),
+			.VGA_BLANK(VGA_BLANK),
+			.VGA_SYNC(VGA_SYNC),
+			.VGA_CLK(VGA_CLK));
+		defparam VGA.RESOLUTION = "160x120";
+		defparam VGA.MONOCHROME = "FALSE";
+		defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
+		defparam VGA.BACKGROUND_IMAGE = "";
+	
+	// Create the color, x, y and writeEn wires that are inputs to the controller.
+	// Memory module
+
+	reg [7:0] readAddress = 8'b0;
+	wire [2:0] readColour;
+	
+	memory MEM (
+		readAddress,
+		newclock,
+		3'b000,
+		0,
+		readColour
+	);
+	
+	// Create the color, x, y and writeEn wires that are inputs to the controller.
+
+	reg [7:0] x_start = 71;
+	reg [6:0] y_start = 51;
+	wire writeEn;
+	assign writeEn = KEY[1];
+	
+	reg [7:0] x;
+	reg [6:0] y;
+	reg [2:0] currentColour;
+	reg write = 1'b0;
+	
+	reg [7:0] counter_x = 8'b0;
+	reg [7:0] counter_y = 8'b0;
+	
+	reg timer;
+	
+	reg [4:1]currentState = IDLE;
+	reg [4:1]nextState = IDLE;
+	
+	wire move;
+	assign move = KEY[2];
+	
+	parameter [4:1] IDLE = 4'b0001, DRAW = 4'b0010, CLEAR = 4'b0100, MOVE = 4'b1000;
+	
+	// Put your code here. Your code should produce signals x, y, color and writeEn
+	// for the VGA controller, in addition to any other functionality your design may require.
+
+	reg [1:0]done = 2'b0;	// indicates counter done
+	
+	wire [7:0] x_cow;
+	wire [6:0] y_cow;
+	
+	LFSR lfsr(
+		.clock(CLOCK_50),
+		.resetn(resetn),
+		.x_cow(x_cow),
+		.y_cow(y_cow)
+	);
+	
+	distance d(
+		.x_start(x_start),
+		.y_start(y_start),
+		.x_cow(x_cow),
+		.y_cow(y_cow),
+		.LEDR(LEDR)
+	);
+	
+	always @ (currentState, resetn, writeEn, done, move) begin
+		case(currentState)
+			IDLE: begin
+						if (!writeEn) nextState = DRAW;
+					end
+			DRAW: begin
+						if (done == 1) nextState = IDLE;
+						else nextState = DRAW;
+					end
+			CLEAR: begin
+						if (done == 1) nextState = IDLE;
+						else nextState = CLEAR;
+					end
+			MOVE: begin
+						if (done == 2) nextState = DRAW;
+						else nextState = MOVE;
+					end
+			default: nextState = IDLE;
+		endcase
+	end
+
+	always @ (posedge CLOCK_50)
+		if (!resetn) currentState <= CLEAR;
+		else if (!writeEn) currentState <= DRAW;
+		else if (!move) currentState <= MOVE;
+		else currentState <= nextState;
+
+	always @ (posedge CLOCK_50) begin
+		if (currentState == IDLE) begin				// IDLE IDLE IDLE
+			currentColour <= 3'b000;
+			done <= 0;
+			LEDG <= 4'b0001;
+		end
+		else if (currentState == DRAW) begin		// DRAW DRAW DRAW
+			if ((!writeEn) || (done == 2)) begin
+				write <= 1;
+				done <= 0;
+				readAddress <= 0;
+				counter_x <= 1;
+				counter_y <= 1;
+				timer <= 0;
+				x <= x_start;
+				y <= y_start;
+				currentColour <= readColour;
+				LEDG <= 4'b0010;
+			end
+			else if (timer == 0) begin
+				timer <= timer + 1;
+				currentColour <= readColour;
+				readAddress <= readAddress + 1;
+			end
+			else if (timer == 1 && counter_y < 17) begin
+				if (counter_x < 17) begin
+					x <= x_start + counter_x;
+					counter_x <= counter_x + 1;
+					timer <= timer + 1;
+				end
+				else if (counter_x == 17) begin
+					if (counter_y == 16) begin
+						done <= 1;
+						currentColour <= 3'b000;
+					end
+					y <= y_start + counter_y;
+					counter_x <= 1;
+					counter_y <= counter_y + 1;
+				end
+			end
+		end
+		else if (currentState == CLEAR) begin		// CLEAR CLEAR CLEAR
+			if (!resetn) begin
+				write <= 1;
+				x <= 0;
+				y <= 0;
+				currentColour <= 3'b000;
+				done <= 0;
+				LEDG <= 4'b0100;
+			end
+			else if (x <= 159 && y < 119) begin
+				y <= y + 1;
+			end
+			else if (x < 159 && y == 119) begin
+				x <= x + 1;
+				y <= 0;
+			end
+			else if ((x >= 159) && (y >= 119)) begin
+				done <= 1;
+				write <= 0;
+			end
+		end
+		else if (currentState == MOVE) begin 		// MOVE MOVE MOVE
+			if (!move) begin
+				done <= 0;
+				write <= 1;
+				x <= x_start;
+				y <= y_start;
+				currentColour <= 3'b000;
+				LEDG <= 4'b1000;
+			end
+			else if (x < x_start + 15)
+				x <= x + 1;
+			else if ((x == x_start + 15) && (y < y_start + 15)) begin
+				y <= y + 1;
+				x <= x_start;
+			end
+			else if ((x == x_start + 15) && (y == y_start + 15) && !SW[0] && !SW[1]) begin	// UP UP UP 
+				done <= 2;
+				if (y_start < 5)
+					y_start <= 0;
+				else
+					y_start <= y_start - 5;
+			end
+			else if ((x == x_start + 15) && (y == y_start + 15) && SW[0] && !SW[1]) begin		// DOWN DOWN DOWN
+				done <= 2;
+				if (y_start > 99)
+					y_start <= 104;
+				else
+					y_start <= y_start + 5;
+			end
+			else if ((x == x_start + 15) && (y == y_start + 15) && !SW[0] && SW[1]) begin		// RIGHT RIGHT RIGHT
+				done <= 2;
+				if (x_start > 139)
+					x_start <= 144;
+				else
+					x_start <= x_start + 5;
+			end
+			else if ((x == x_start + 15) && (y == y_start + 15) && SW[0] && SW[1]) begin		// LEFT LEFT LEFT
+				done <= 2;
+				if (x_start < 5)
+					x_start <= 0;
+				else
+					x_start <= x_start - 5;
+			end
+		end
+	end
+endmodule
+
+
+
+
+
+
+module LFSR 
+	(
+		clock,
+		resetn,
+		x_cow,
+		y_cow
+	
+	);
+	
+	input clock, resetn;
+	reg [14:0] pos;
+	output reg [7:0] x_cow;
+	output reg [6:0] y_cow;
+	
+	wire linear_feedback;
+	assign linear_feedback = !(pos[0] ^ pos[5] ^ pos[7]);
+	
+	always @ (posedge clock) begin
+		if (!resetn) begin
+			if ({pos[7:0]} > 159) pos[7:0] <= pos[7:0] - 100;
+			if ({pos[14:8]} > 119) pos[14:8] <= pos[14:8] - 50;
+			x_cow <= pos[7:0];
+			y_cow <= pos[14:8];
+		end
+		else begin
+			pos <= {pos[13], pos[12], pos[11], pos[10], pos[9], pos[8], pos[7], pos[6], pos[5], pos[4], pos[3], pos[2], pos[1], pos[0], linear_feedback};
+		end
+	end
+	
+endmodule
+
+module distance (
+		x_start,
+		y_start,
+		x_cow,
+		y_cow,
+		LEDR
+	);
+
+	input [7:0] x_start, x_cow;
+	input [6:0] y_start, y_cow;
+	output reg [17:0] LEDR;
+		
+	reg [7:0] distance;
+	always @ (*) begin
+		if (x_start >= x_cow && y_start >= y_cow)
+			distance = (x_start - x_cow) + (y_start - y_cow);
+		else if (x_start < x_cow && y_start >= y_cow)
+			distance = (x_cow - x_start) + (y_start - y_cow);
+		else if (x_start >= x_cow && y_start < y_cow)
+			distance = (x_start - x_cow) + (y_cow - y_start);
+		else if (x_start < x_cow && y_start < y_cow)	
+			distance = (x_cow - x_start) + (y_cow - y_start);
+		else
+			distance = 256;
+	end
+	
+	
+	always @ (*) begin // LEDR to distance
+		if (distance < 6)
+			LEDR <= 18'b11_1111_1111_1111_1111;
+		else if (distance < 20)
+			LEDR <= 18'b01_1111_1111_1111_1111;
+		else if (distance < 34)
+			LEDR <= 18'b00_1111_1111_1111_1111;
+		else if (distance < 48)
+			LEDR <= 18'b00_0111_1111_1111_1111;
+		else if (distance < 62)
+			LEDR <= 18'b00_0011_1111_1111_1111;
+		else if (distance < 76)
+			LEDR <= 18'b00_0001_1111_1111_1111;
+		else if (distance < 90)
+			LEDR <= 18'b00_0000_1111_1111_1111;
+		else if (distance < 104)
+			LEDR <= 18'b00_0000_0111_1111_1111;
+		else if (distance < 118)
+			LEDR <= 18'b00_0000_0011_1111_1111;
+		else if (distance < 132)
+			LEDR <= 18'b00_0000_0001_1111_1111;
+		else if (distance < 146)
+			LEDR <= 18'b00_0000_0000_1111_1111;
+		else if (distance < 160)
+			LEDR <= 18'b00_0000_0000_0111_1111;
+		else if (distance < 174)
+			LEDR <= 18'b00_0000_0000_0011_1111;
+		else if (distance < 188)
+			LEDR <= 18'b00_0000_0000_0001_1111;
+		else if (distance < 202)
+			LEDR <= 18'b00_0000_0000_0000_1111;
+		else if (distance < 216)
+			LEDR <= 18'b00_0000_0000_0000_0111;
+		else if (distance < 230)
+			LEDR <= 18'b00_0000_0000_0000_0011;
+		else
+			LEDR <= 18'b00_0000_0000_0000_0001;
+	end
+	
+endmodule
+	
