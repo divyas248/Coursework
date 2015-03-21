@@ -1,0 +1,188 @@
+Command: Size: create returned non-NULL
+Command: Key: Inserted into blank space
+Command: Key: Inserted into blank space
+Command: Key: [Foster]
+Inserted after removing existing data: CSC190
+Command: Key: [Foster]
+Inserted after removing existing data: Praxis
+Command: Who?
+[StCyr]
+StCyr:CSC190
+What?
+Who?
+[Foster]
+Foster:Torture
+What?
+[Foster]
+Foster:Torture
+[StCyr]
+StCyr:CSC190
+Command: Key: [Foster]
+Torture
+Command: Key: [Foster]
+[StCyr]
+[StCyr]
+Deleted (was Torture)
+Command: Who?
+[StCyr]
+StCyr:CSC190
+What?
+[StCyr]
+StCyr:CSC190
+Command: [StCyr]
+Command: Size: create returned non-NULL
+Command: Key: [Harry]
+Inserted into blank space
+Command: Key: [Harry]
+[Ron]
+Inserted into blank space
+Command: Who?
+[Harry]
+Harry:Potter
+What?
+Who?
+[Ron]
+Ron:Weasley
+What?
+[Harry]
+Harry:Potter
+[Ron]
+Ron:Weasley
+Command: Load factor: 0.500000
+Command: Key: [Ron]
+Deleted (was Weasley)
+Command: Who?
+[Harry]
+Harry:Potter
+What?
+[Harry]
+Harry:Potter
+Command: Load factor: 0.250000
+Command: [Harry]
+Command: Size: create returned non-NULL
+Command: Bucket count: 1
+Load factor: 0.000000
+Use factor: 0.000000
+Largest bucket size: 0
+Dynamic behaviour: 1
+Expand use factor: 0.700000
+Contract use factor: 0.200000
+Command: Resize: (0/1) Expand: Contract: Command: Bucket count: 1
+Load factor: 0.000000
+Use factor: 0.000000
+Largest bucket size: 0
+Dynamic behaviour: 0
+Expand use factor: 0.300000
+Contract use factor: 0.100000
+Command: Key: Inserted into blank space
+Command: Key: [Vaughn]
+returning NULL
+[0x4c1f8c0] =  Vaughn : Secret
+Inserted after resolving hash collision
+Command: Key: [Clarion]
+returning NULL
+[0x4c1fa10] =  Clarion : Iron
+Inserted after resolving hash collision
+Command: Key: [Firenzerral]
+returning NULL
+[0x4c1fb60] =  Firenzerral : Strength
+Inserted after resolving hash collision
+Command: Key: [Diadem]
+returning NULL
+[0x4c1fcb0] =  Diadem : Truth
+Inserted after resolving hash collision
+Command: Key: [Tsovinar]
+returning NULL
+[0x4c1fe00] =  Tsovinar : Waves
+Inserted after resolving hash collision
+Command: Key: [Solornel]
+returning NULL
+[0x4c1ff50] =  Solornel : Storm
+Inserted after resolving hash collision
+Command: Key: [Marzban]
+returning NULL
+[0x4c200a0] =  Marzban : Law
+Inserted after resolving hash collision
+Command: Who?
+[Rashk]
+Rashk:Sight
+What?
+Who?
+[Vaughn]
+Vaughn:Secret
+What?
+Who?
+[Tsovinar]
+Tsovinar:Waves
+What?
+Who?
+[Solornel]
+Solornel:Storm
+What?
+Who?
+[Clarion]
+Clarion:Iron
+What?
+Who?
+[Firenzerral]
+Firenzerral:Strength
+What?
+Who?
+[Marzban]
+Marzban:Law
+What?
+Who?
+[Diadem]
+Diadem:Truth
+What?
+[Clarion]
+Clarion:Iron
+[Diadem]
+Diadem:Truth
+[Firenzerral]
+Firenzerral:Strength
+[Marzban]
+Marzban:Law
+[Rashk]
+Rashk:Sight
+[Solornel]
+Solornel:Storm
+[Tsovinar]
+Tsovinar:Waves
+[Vaughn]
+Vaughn:Secret
+Command: Bucket count: 1
+Load factor: 8.000000
+Use factor: 1.000000
+Largest bucket size: 8
+Dynamic behaviour: 0
+Expand use factor: 0.300000
+Contract use factor: 0.100000
+Command: Key: [Rashk]
+Deleted (was Sight)
+Command: Who?
+[Solornel]
+Solornel:Storm
+What?
+Who?
+[Vaughn]
+Vaughn:Secret
+What?
+Who?
+[Clarion]
+Clarion:Iron
+What?
+Who?
+[Firenzerral]
+Firenzerral:Strength
+What?
+Who?
+[Marzban]
+Marzban:Law
+What?
+Who?
+[Diadem]
+Diadem:Truth
+What?
+Who?
+[(null)]
