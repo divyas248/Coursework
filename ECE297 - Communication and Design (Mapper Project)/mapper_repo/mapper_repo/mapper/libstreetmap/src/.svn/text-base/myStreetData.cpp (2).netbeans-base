@@ -1,0 +1,13 @@
+#include "myStreetData.h"
+
+void myStreetData::addStreetSeg(streetSeg _streetSeg) {
+    streetSegs.push_back(_streetSeg);
+}
+
+unsigned myStreetData::getID() {
+    return id;
+}
+
+vector<streetSeg> myStreetData::getStreetSegs() {
+    return streetSegs;
+}

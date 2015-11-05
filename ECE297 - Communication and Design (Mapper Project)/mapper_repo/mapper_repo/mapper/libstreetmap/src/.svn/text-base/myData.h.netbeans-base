@@ -1,0 +1,29 @@
+#ifndef MYDATA_H
+#define	MYDATA_H
+#include <vector>
+#include "StreetsDatabaseAPI.h"
+#include "../../libstreetsdatabase/src/LatLon.h"
+
+using namespace std;
+
+class myData {
+public:
+    myData();
+    myData(const myData& orig);
+    virtual ~myData();
+    
+    // Special Constructors
+    myData(unsigned _id, LatLon _ll);
+    
+    // Getters, don't need setters never changing data
+    unsigned getID() const {return id;}
+    LatLon getLatLon() const {return ll;}
+
+private:
+    // Intersection Name e.g. "Bloor & Yonge"
+    unsigned int id;
+    // LatLon
+    LatLon ll;
+};
+
+#endif	/* MYDATA_H */

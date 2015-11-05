@@ -1,0 +1,87 @@
+#include "StreetsDatabaseAPI.h"
+#include "m1.h"
+#include <iostream>
+
+using namespace std;
+
+int main() {
+
+    load_map("/cad2/ece297s/public/maps/toronto.bin");
+    
+    
+    // try out your m1.h functions here
+    /*find_intersection_id_from_name("Warden Avenue (124)");
+    find_street_id_from_name("Yonge Street");
+    cout << getStreetName(38) << endl;
+    
+    // intersection 6315 is Yonge Street
+    vector<unsigned>hi=find_intersection_street_segments(6315); 
+    
+    vector<unsigned>hi2=find_intersection_street_segments("Yonge Street");
+    
+    //find
+    
+    
+    vector<string> ss;
+    //ss = find_intersection_street_names("");
+    //cout << ss << endl;
+    ss = find_intersection_street_names("Highway 401 Eastbound Collectors & Ramp to Highway 404 / Don Valley Parkway");
+    for (auto iter = ss.begin(); iter != ss.end(); iter++) {
+        cout << *iter << endl;
+    }
+    ss = find_intersection_street_names(-1);
+    ss = find_intersection_street_names(800000);
+    ss = find_intersection_street_names(12364);
+    for (auto iter = ss.begin(); iter != ss.end(); iter++) {
+        cout << *iter << endl;
+    }
+    
+    find_all_street_intersections("Yonge Street");
+    cout << getIntersectionName(164197) << endl;
+    cout << getIntersectionName(61436) << endl;
+    cout << getIntersectionName(100020) << endl;
+    
+
+    vector<unsigned> ssIDs = find_street_street_segments("Yonge Street");
+    for (auto iter = ssIDs.begin(); iter != ssIDs.end(); iter++) {
+        cout << *iter << endl;
+    }
+    
+    find_all_street_intersections("IMADETHISUP");
+    find_all_street_intersections("Yonge Street");
+    }*/
+    
+    vector<unsigned> interIDs = find_adjacent_intersections(getIntersectionName(38));
+    for (auto iter = interIDs.begin(); iter != interIDs.end(); iter++) {
+        cout << *iter << endl;
+    }
+
+    
+    //test for latitude and closest POI
+    string testinglat= find_closest_point_of_interest(getIntersectionPosition(6315));
+    cout<<testinglat<<endl;
+    
+    //test for distance between 2 LatLon positions
+    double testdistance=find_distance_between_two_points(getIntersectionPosition(6315),getIntersectionPosition(6316));
+    cout<<testdistance<<"m is the distance between intersection 6315 and 6316"<<endl;
+    
+    //check what street is intersection 6316
+    string test6316=getIntersectionName(6316);
+    cout<<test6316<<"is intersection 6316"<<endl;
+    string test6315=getIntersectionName(6315);
+    cout<<test6315<<"is intersection 6316"<<endl;
+    //testing directly connected
+    //if (are_directly_connected("Yonge Street","Yonge Street & Cameron Avenue"))
+    //    cout<<"Yes Connected"<<endl;
+    //if (are_directly_connected("Yonge Street","fuck avenue"))
+    //    cout<<"You messed up"<<endl;
+    
+    cout << find_street_segment_length(8300) << endl;
+    cout << find_street_segment_length(8305) << endl;
+    cout << find_street_segment_length(8310) << endl;
+    cout << find_street_segment_length(1679) << endl;
+    
+    close_map();
+    
+    return 0;
+}

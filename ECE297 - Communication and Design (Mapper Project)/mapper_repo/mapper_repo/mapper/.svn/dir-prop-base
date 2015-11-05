@@ -1,0 +1,9 @@
+K 10
+svn:ignore
+V 49
+libstreetsdatabase.a
+libstreetmap.a
+mapper
+build
+
+END

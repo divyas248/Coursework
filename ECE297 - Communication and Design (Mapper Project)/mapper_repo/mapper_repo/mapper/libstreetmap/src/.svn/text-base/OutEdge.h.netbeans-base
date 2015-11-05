@@ -1,0 +1,36 @@
+/* 
+ * File:   OutEdge.h
+ * Author: dinhjoh1
+ *
+ * Created on January 18, 2015, 11:11 AM
+ */
+
+#ifndef OUTEDGE_H
+#define	OUTEDGE_H
+#include <vector>
+#include "../../libstreetsdatabase/src/LatLon.h"
+
+using namespace::std;
+
+class OutEdge {
+private:
+    unsigned streetSegID;
+    unsigned streetID;
+    unsigned speedLimit;
+    unsigned toNodeID;
+    vector<LatLon> curvePoints;
+public:
+    unsigned getStreetSegID();
+    unsigned getStreetID();
+    unsigned getSpeedLimit();
+    unsigned getToNodeID();
+    
+    // Return the vector containing the curve points.
+    vector<LatLon> getCurvePoints();
+    
+    OutEdge(unsigned streetSegID_, unsigned streetID_, unsigned speedLimit_,
+        unsigned toNodeID_, vector<LatLon> curvePoints_);
+};
+
+#endif	/* OUTEDGE_H */
+

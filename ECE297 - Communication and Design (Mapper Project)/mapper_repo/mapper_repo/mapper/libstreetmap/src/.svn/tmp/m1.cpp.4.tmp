@@ -1,0 +1,228 @@
+
+#include "StreetSegmentEnds.h"
+
+
+#include "StreetsDatabaseAPI.h"
+
+//Jan 18. Edgar Wang
+#include "m1.h"
+#include <vector>
+#include <unordered_map>
+#include <iostream>
+#include <algorithm>
+#include "../../libstreetsdatabase/src/LatLon.h"
+
+using namespace std;
+
+unordered_map <string, myInterData> nodeInter;
+unordered_map <string, myStreetData> nodeStreet;
+
+//load the map
+bool load_map(std::string map_name) {
+
+    bool load_success = loadStreetDatabaseBIN(map_name);
+    
+    unsigned numIntersections = getNumberOfIntersections();
+    
+    for(unsigned a = 0; a < numIntersections; a++) {
+        // Collect the intersection data.
+        string thisName = getIntersectionName(a);
+        LatLon thisLatLon = getIntersectionPosition(a);
+        myInterData thisIntersection = myInterData(a, thisLatLon);
+        nodeInter.insert(make_pair(thisName, thisIntersection));
+    }
+    
+    unsigned numStreetSegs = getNumberOfStreetSegments();
+    
+    for(unsigned b = 0; b < numStreetSegs; b++) {
+        // Collect the street data.
+        unsigned thisStreetID = getStreetSegmentStreetID(b);
+        string thisStreetName = getStreetName(thisStreetID);
+        
+        // Collect the street segment data.
+        StreetSegmentEnds thisFromTo = getStreetSegmentEnds(b);
+        double thisSpeedLimit = getStreetSegmentSpeedLimit(b);
+        unsigned curvePointCount = getStreetSegmentCurvePointCount(b);
+        vector<LatLon> curvePoints;
+        for(unsigned c = 0; c < curvePointCount; c++) {
+            curvePoints.push_back(getStreetSegmentCurvePoint(b, c));
+        }
+        
+        streetSeg thisStreetSeg(b, thisFromTo, thisSpeedLimit, curvePoints);
+        
+        auto iter = nodeStreet.find(thisStreetName);
+        if(iter == nodeStreet.end()) {
+            myStreetData thisStreet(thisStreetID, thisStreetSeg);
+            nodeStreet.insert(make_pair(thisStreetName, thisStreet));
+        }
+        
+        else {
+            iter->second.addStreetSeg(thisStreetSeg);
+        }
+        
+        // May need to add thisFromTo into nodeInter.
+    }
+
+    // create any data structures here to speed up your API functions
+    // ...
+
+    return load_success;
+}
+
+//close the map
+void close_map() {
+    closeStreetDatabase();
+    
+    // destroy any data structures you created in load_map
+    // ...
+}
+
+//implement the rest of the functions provided in m1.h
+// ...
+
+//function to return intersection id for an intersection name
+unsigned find_intersection_id_from_name(std::string intersection_name) {
+    auto iter = nodeInter.find(intersection_name);
+    if(iter == nodeInter.end()) {
+        cout << "Problem: intersection name does not exist!" << endl;
+        return getNumberOfIntersections() + 1;
+    }
+    
+    else {
+        cout << iter->second.getID() << endl;
+        return iter->second.getID();
+    }
+}
+
+//function to return street id for a street name
+unsigned find_street_id_from_name(string street_name) {
+    auto iter = nodeStreet.find(street_name);
+    if(iter == nodeStreet.end()) {
+        cout << "Problem: street name does not exist!" << endl;
+        return getNumberOfStreets() + 1;
+    }
+    
+    else {
+        cout<< iter->second.getID()<<endl;
+        return iter->second.getID();
+    }
+}
+
+vector<unsigned> find_intersection_street_segments(std::string intersection_name){
+    
+    //get intersection id from intersection name and use the API to find the street segments
+    //for example if "Yonge Street" is intersection 6315 returns Yonge Street's street segments
+    
+    unsigned idOfIntersection=find_intersection_id_from_name(intersection_name);  
+    
+    return find_intersection_street_segments(idOfIntersection);
+    
+}
+
+vector<unsigned> find_intersection_street_segments(unsigned intersection_id){
+    unsigned numSegs=getIntersectionStreetSegmentCount(intersection_id);
+    
+    vector<unsigned> vectorStreetSegments;
+    
+    for (unsigned k=0;k<numSegs;k++)
+        vectorStreetSegments.push_back(getIntersectionStreetSegment(intersection_id, k));
+     
+    
+    //PURELY FOR TESTING, prints "from to" ends of the street segment at intersection_id
+    for (auto iter=vectorStreetSegments.begin();iter!=vectorStreetSegments.end();iter++){
+        StreetSegmentEnds endsTest= getStreetSegmentEnds(*iter);
+        cout<<getIntersectionName(endsTest.from)<< " to " <<getIntersectionName(endsTest.to)<<endl; 
+    }
+    return (vectorStreetSegments);
+}
+
+//function to return street names at an intersection
+std::vector<std::string> find_intersection_street_names(std::string intersection_name) {
+    // Converting intersection name to an id
+    unsigned interID = find_intersection_id_from_name(intersection_name);
+    return find_intersection_street_names(interID);
+}
+
+std::vector<std::string> find_intersection_street_names(unsigned intersection_id) {
+    unsigned ssID, streetID;
+    string tempName = "";
+    vector<string> streetNames;
+    if (intersection_id < 0 || intersection_id >= getNumberOfIntersections()) {
+        cerr << "Error: Intersection out of range" << endl;
+        return streetNames;
+    }
+    // Getting the number of street segments attached to intersection
+    unsigned ssNum = getIntersectionStreetSegmentCount(intersection_id);
+    
+    for (unsigned i = 0; i < ssNum; i++) {
+        ssID = getIntersectionStreetSegment(intersection_id, i);
+        streetID = getStreetSegmentStreetID(ssID);
+        tempName = getStreetName(streetID);
+        auto iter = find(streetNames.begin(), streetNames.end(), tempName);
+        if (iter == streetNames.end()) {
+            streetNames.push_back(tempName);
+        }
+    }
+    return streetNames;
+}
+
+//find all intersections connected by one street segment from given intersection (hint: check for 1-way streets too)
+std::vector<unsigned> find_adjacent_intersections(std::string intersection_name) {
+    unsigned interID = find_intersection_id_from_name(intersection_name);
+    vector<unsigned> ssIDs = find_intersection_street_segments(intersection_name);
+    vector<unsigned> interIDs;
+    for (unsigned i = 0; i < ssIDs.size(); i++) {
+        
+    }
+}
+
+// For a given street name, return a vector of street segment id's
+std::vector<unsigned> find_street_street_segments(std::string street_name) {
+    vector<streetSeg> ssNames;
+    vector<unsigned> ssIDs;
+    auto i = nodeStreet.find(street_name);
+    ssNames = i->second.getStreetSegs();
+    
+    for (auto iter = ssNames.begin(); iter != ssNames.end(); iter++) {
+        ssIDs.push_back(iter->getID());
+    }
+    return ssIDs;
+}
+
+//for a given street, find all the intersections
+vector<unsigned> find_all_street_intersections(std::string street_name) {
+    vector<unsigned> intersections;
+    
+    // Get an iterator that points to the start of the street segment vector.
+    auto i = nodeStreet.find(street_name);
+    vector<streetSeg> segments = i->second.getStreetSegs();
+    auto iter = segments.begin();
+    
+    while(iter != segments.end()) {
+        StreetSegmentEnds fromTo = iter->getEnds();
+        unsigned from = fromTo.from;
+        unsigned to = fromTo.to;
+        
+        auto inter_iter = find(intersections.begin(), intersections.end(), from);
+        if(inter_iter == intersections.end()) {
+            intersections.push_back(from);
+        }
+        
+        inter_iter = find(intersections.begin(), intersections.end(), to);
+        if(inter_iter == intersections.end()) {
+            intersections.push_back(to);
+        }
+        
+        iter++;
+    }
+    
+    auto print_me = intersections.begin();
+    while(print_me != intersections.end()) {
+        cout << *print_me << endl;
+        print_me++;
+    }
+    
+    return intersections;
+}
+
+

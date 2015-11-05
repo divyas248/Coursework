@@ -1,0 +1,63 @@
+#pragma once
+#include <string>
+#include "easygl_constants.h"
+#include "graphics.h"
+
+#define SCALE_FACTOR 1 / 6
+#define HIGH_ZOOM 0.001
+#define MED_ZOOM 0.1
+#define POI_THRESHOLD 0.00055
+#define POI_HOVER_THRESHOLD 0.0001
+#define POI_RADIUS 0.00005
+#define FAST_ROAD_THRESHOLD 80
+#define MED_ROAD_LENGTH 15000
+#define RAD_TO_DEGREES 180 / 3.14159
+#define MAX_NAME_LENGTH 25
+#define NUM_GRID 4
+#define HOVER_GRID 20
+#define HOVER_TEXT_OFFSET 0.00015
+#define TEXT_FONT_12 12
+
+extern bool hoverGrid[HOVER_GRID][HOVER_GRID];
+extern unsigned hoverGridID[HOVER_GRID][HOVER_GRID];
+extern float tmpLeft;
+extern float tmpRight;
+extern float tmpTop;
+extern float tmpBot;
+// Draws the map whose at map_path; this should be a .bin file.
+void draw_map(std::string map_path);
+
+<<<<<<< .mine
+// Draws the screen
+void draw_screen(void);
+=======
+// Redraw the screen after each event loop.
+void draw_screen(void);
+>>>>>>> .r79
+
+<<<<<<< .mine
+// React to mouse button clicked
+void act_on_mouse_button(float x, float y, t_event_buttonPressed buttonPressed);
+
+// Draws the streets of the designated city
+void draw_streets(void);=======
+// Draw all water (water, ponds, lakes, lagoons, rivers, and streams) features.
+void draw_water(void);
+
+// Draw the remaining closed features (woods, grasslands, sand, beaches, and islands).
+void draw_closed_features(void);
+
+// Draw the streets based on the level of zoom.
+void draw_streets(float, float, float, float, float, float);
+
+// Draw the street names based on the level of zoom.
+void draw_street_names(float, float, float, float, float, float);
+
+// Draw a red circle at all points of interest.
+void draw_POI(float, float, float, float);
+
+//Draw the text given a point of interest
+void draw_POI_text(unsigned id_poi);
+
+//Given a street name or point of interest, Zoom into it
+void callSearchFunction(std::string input_string);>>>>>>> .r79

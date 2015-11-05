@@ -1,0 +1,83 @@
+#ifndef MYINTERDATA_H
+#define	MYINTERDATA_H
+#include <vector>
+#include <cfloat>
+#include "StreetsDatabaseAPI.h"
+#include "../../libstreetsdatabase/src/LatLon.h"
+
+using namespace std;
+
+/* Data structure to hold intersection data:
+ * Intersection ID
+ * Latitude and longitude of the intersection
+ * Street segment IDs that connect to the intersection
+ * Streets that make up the intersection
+ * Adjacent intersections that can be reached
+ */
+class MyInterData {
+public:
+    // Special Constructors
+    MyInterData(
+            unsigned _id, 
+            string &_name,
+            LatLon _ll, 
+            vector<unsigned> &_ssIDs, 
+            vector<string> &_interStreets, 
+            vector<unsigned> &_adjInterIDs) 
+            {
+            id = _id;
+            name = _name;
+            ll = _ll;
+            streetSegIDs = _ssIDs;
+            interStreets = _interStreets;
+            adjInterIDs = _adjInterIDs;
+            travelTime = FLT_MAX;
+            }
+    MyInterData(
+            string &_name, 
+            LatLon _ll, 
+            vector<unsigned> &_ssIDs, 
+            vector<string> &_interStreets, 
+            vector<unsigned> &_adjInterIDs) 
+            {
+            name = _name; 
+            ll = _ll;
+            streetSegIDs = _ssIDs;
+            interStreets = _interStreets;
+            adjInterIDs = _adjInterIDs;
+            travelTime = FLT_MAX;
+            }
+    // Getters
+    unsigned getID() const {return id;}
+    string getName() const {return name;}
+    LatLon getLatLon() const {return ll;}
+    vector<unsigned> getSSIDs() const {return streetSegIDs;}
+    vector<string> getInterStreets() const {return interStreets;}
+    vector<unsigned> getAdjInterIDs() const {return adjInterIDs;}
+    
+    // Setters
+    void addStreetSegID(unsigned ssID) {streetSegIDs.push_back(ssID);}
+    void addInterStreet(string street_name) {interStreets.push_back(street_name);}
+    void addAdjInterID(unsigned adj_inter_id) {adjInterIDs.push_back(adj_inter_id);}
+    void setInterID(unsigned _id) {id = _id;}
+    
+    // Flags and information for search
+    double travelTime;
+    int reachingEdge;
+    
+private:
+    // Intersection Name e.g. "Bloor & Yonge"
+    string name;
+    // Intersection ID
+    unsigned id;
+    // LatLon
+    LatLon ll;
+    // Vector of street segment ids attached to street
+    vector<unsigned> streetSegIDs;
+    // Vector of street names that make up the intersection
+    vector<string> interStreets;
+    // Vector of adjacent intersections (only if accessible i.e. not one-way)
+    vector<unsigned> adjInterIDs;
+};
+
+#endif	/* MYINTERDATA_H */

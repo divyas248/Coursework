@@ -1,0 +1,325 @@
+#include "m1.h"
+#include "m2.h"
+#include "m3.h"
+#include "graphics.h"
+#include <cmath>
+#include <cfloat>
+#include <algorithm>
+#include <queue>
+
+using namespace std;
+
+// Returns a path (route) between the start intersection and the end 
+// intersection, if one exists. If no path exists, this routine returns 
+// an empty (size == 0) vector. If more than one path exists, the path 
+// with the shortest travel time is returned. The path is returned as a vector 
+// of street segment ids; traversing these street segments, in the given order,
+// would take one from the start to the end intersection.
+vector<unsigned> find_path_between_intersections(unsigned intersect_id_start, unsigned intersect_id_end) {
+    vector<unsigned> path;
+    // Checks for identical start and end point
+    if (intersect_id_start == intersect_id_end) { return path; }
+    
+    //double interEndLat = mapInterName.find(intersect_id_end)->second.getLatLon().lat;
+    //double interEndLon = mapInterName.find(intersect_id_end)->second.getLatLon().lon;
+    
+    if(!bfsPath(&(mapInterName.find(intersect_id_start)->second), intersect_id_end)) { return path; }
+    
+    path = bfsTraceBack(intersect_id_end);
+    
+    if (!path.empty()) { drawPath(path); }
+    return path;
+}
+
+// Returns the time required to travel along the path specified. The path
+// is passed in as a vector of street segment ids, and this function can 
+// assume the vector either forms a legal path or has size == 0.
+// The travel time is the sum of the length/speed-limit of each street 
+// segment, plus 15 seconds per turn implied by the path. A turn occurs
+// when two consecutive street segments have different street names.
+double compute_path_travel_time(const vector<unsigned>& path) {
+    double travelTime = 0;
+    // Checks if the path vector is empty
+    if (path.size() == 0) {return travelTime;}
+    
+    // Get the first street segment's street name, for comparison in for loop
+    string lastStreet = mapStreetSeg.find(*(path.begin()))->second.getStreetName();
+    
+    // Iterate through path, adding each segments time
+    for (auto iter = path.begin(); iter != path.end(); iter++) {
+        // Increment travel time using pre-built M1 function
+        travelTime += find_segment_travel_time(*iter) * SECS_PER_MIN;
+
+        string currentStreet = mapStreetSeg.find(*iter)->second.getStreetName();
+        if (currentStreet != lastStreet) {
+            // Street name change, add 15 second delay
+            travelTime += STREET_CHANGE_DELAY;
+            lastStreet = currentStreet;
+        }
+    }
+    
+    // return time in minutes
+    return travelTime / SECS_PER_MIN;
+}
+
+// Returns the shortest travel time path (vector of street segments) from 
+// the start intersection to a point of interest with the specified name.
+// If no such path exists, returns an empty (size == 0) vector.
+vector<unsigned> find_path_to_point_of_interest (unsigned intersect_id_start, string point_of_interest_name) {
+    // Find a few of the closest POIs first
+    vector<unsigned> closePOIs = find_close_POIs(intersect_id_start, point_of_interest_name);
+    vector<unsigned> path;
+    vector<unsigned> tempPath;
+    double travelTime = FLT_MAX;
+    double lastTime = FLT_MAX;
+    
+    // Search through the closest 2 POIs
+    for (unsigned i = 0; i < closePOIs.size(); i++) {
+        float lon = mapPOIName.find(closePOIs[i])->second.getLatLon().lon;
+        float lat = mapPOIName.find(closePOIs[i])->second.getLatLon().lat;
+        // Find the closest intersection to each POI
+        unsigned interID = find_closest_intersection(lon, lat);
+        // Find the path between the intersections
+        tempPath = find_path_between_intersections(intersect_id_start, interID);
+        // Compute the travel time for the new path
+        travelTime = compute_path_travel_time(tempPath);
+        // If the new travel time is less than the old, write over the path
+        if (travelTime != 0 && travelTime < lastTime) {
+            lastTime = travelTime;
+            path = tempPath;
+        }
+    }
+    return path;
+}
+
+// Returns a boolean if a path is found, using Dijkstra's algorithm
+// Flags in MyInterData are set in order to provide "breadcrumbs" to find
+// the original path using the function bfsTraceBack
+bool bfsPath (MyInterData *source, int dest) {
+    priority_queue<waveElem> wavefront;
+    wavefront.push(waveElem(source, NO_EDGE, 0.0));
+    
+    bool found = false;
+    double bestTime = FLT_MAX;
+    double leastEntryTime = 0.0;
+    
+    while ((!wavefront.empty()) && (leastEntryTime < bestTime)) {
+        waveElem curr = wavefront.top();
+        unsigned currID = curr.interPtr->getID();
+        
+        // Remove node from the front of wavefront
+        wavefront.pop();
+
+        // Checks to see if the wavefront travel time (current path) is better than
+        // Any older paths travel time (saved from previous iterations)
+        if (leastEntryTime < curr.interPtr->travelTime) {
+            curr.interPtr->reachingEdge = curr.streetSegID;
+            curr.interPtr->travelTime = curr.travelTime;
+            
+            //Draw the search path
+            //drawSearchPath(curr.streetSegID);
+            
+            if (currID == (unsigned) dest) { 
+                // Reached destination
+                found = true;
+                bestTime = curr.interPtr->travelTime;
+            }
+            
+            vector<unsigned> streetSegIDs = mapInterName.find(currID)->second.getSSIDs();
+            
+            unsigned toID;
+            for (unsigned i = 0; i < streetSegIDs.size(); i++) {
+                // Checks which side of the street segment is adjacent, i.e. not our current node
+                if (currID == mapStreetSeg.find(streetSegIDs[i])->second.getTo())
+                    toID = (mapStreetSeg.find(streetSegIDs[i])->second.getFrom());
+                else
+                    toID = mapStreetSeg.find(streetSegIDs[i])->second.getTo();
+                
+                // Check if our current node can reach the to node
+                //if (are_directly_connected(mapInterName.find(currID)->second.getName(), mapInterName.find(toID)->second.getName())) 
+                
+                if ( (!getStreetSegmentOneWay(streetSegIDs[i])) || (currID == mapStreetSeg.find(streetSegIDs[i])->second.getFrom())) {
+                            
+                    // Initialize travel time and add current time
+                    double travelTime = mapStreetSeg.find(streetSegIDs[i])->second.getTravelTime();
+                    travelTime += curr.travelTime;
+                    
+                    // Heuristic for A*
+                    LatLon currLatLon = mapInterName.find(currID)->second.getLatLon();
+                    LatLon destLatLon = mapInterName.find(dest)->second.getLatLon();
+                    LatLon nextLatLon = mapInterName.find(toID)->second.getLatLon(); 
+
+                    travelTime += heuristic(currLatLon, destLatLon, nextLatLon);
+                    
+                    if ((curr.interPtr->reachingEdge != NO_EDGE) && (mapStreetSeg.find(curr.interPtr->reachingEdge)->second.getStreetName() != mapStreetSeg.find(streetSegIDs[i])->second.getStreetName())) {
+                        travelTime += STREET_CHANGE_DELAY / SECS_PER_MIN;
+                    }
+                    wavefront.push(waveElem(&(mapInterName.find(toID)->second), (int) streetSegIDs[i], travelTime));     
+                }
+            }
+            if (!wavefront.empty()) leastEntryTime = wavefront.top().travelTime;
+        }
+    }
+    
+    return found;
+}
+
+// Traces back using the breadcrumbs in bfsPath to return the
+// optimal path source to destination
+vector<unsigned> bfsTraceBack (int dest) {
+    vector<unsigned> path;
+    MyInterData *currNode = &(mapInterName.find(dest)->second);
+    int prevEdge = currNode->reachingEdge;
+    unsigned prevNode;
+    
+    while (prevEdge != NO_EDGE) {
+        path.push_back(prevEdge);
+        
+        if (mapStreetSeg.find(prevEdge)->second.getFrom() == currNode->getID())
+            prevNode = mapStreetSeg.find(prevEdge)->second.getTo();
+        else
+            prevNode = mapStreetSeg.find(prevEdge)->second.getFrom();
+        currNode = &(mapInterName.find(prevNode)->second);
+        prevEdge = currNode->reachingEdge;
+    }
+    
+    // May not need this, currently goes backwards (i.e. destination -> source)
+    reverse(path.begin(), path.end());
+    
+    clearInterFlags();
+    
+    return (path);
+}
+
+// Resets the flags (reachingEdge and travelTime) in our MyInterData structure
+// as path-finding uses them
+void clearInterFlags() {
+    for (unsigned i = 0; i < numIntersections; i++) {
+        mapInterName.find(i)->second.reachingEdge = -1;
+        mapInterName.find(i)->second.travelTime = FLT_MAX;
+    }
+}
+
+// A heuristic function for path-finding
+double heuristic(LatLon source, LatLon dest, LatLon next) {
+    double distance1 = find_distance_between_two_points(next, dest);
+    double distance2 = find_distance_between_two_points(source, dest);
+    
+    return (distance1 - distance2) / 1000 / 100 * 60;
+}
+
+// Draws the identified path
+void drawPath(vector<unsigned> path) {
+    for (unsigned i = 0; i < path.size(); i++) {
+        setcolor(PURPLE);
+        setlinewidth(5);
+        unsigned prevID = mapStreetSeg.find(path[i])->second.getFrom();
+        unsigned nextID = mapStreetSeg.find(path[i])->second.getTo();
+        
+        vector<LatLon> curvePoints = mapStreetSeg.find(path[i])->second.getCurves();
+        
+        double x_prev = mapInterName.find(prevID)->second.getLatLon().lon;
+        double y_prev = mapInterName.find(prevID)->second.getLatLon().lat;
+        double x_to = mapInterName.find(nextID)->second.getLatLon().lon;
+        double y_to = mapInterName.find(nextID)->second.getLatLon().lat;
+        
+        if (curvePoints.empty()) {
+            drawline(x_prev, y_prev, x_to, y_to);
+        }
+        else {
+            unsigned curvePointCount = curvePoints.size();
+                    
+            // Draw from the "from" intersection to the first curvePoint.
+            // Then iteratively draw lines between the curvePoints.
+            // Finally, connect the last curvePoint to the "to" intersection.
+
+            double x = curvePoints[0].lon;
+            double y = curvePoints[0].lat;
+
+            drawline(x_prev, y_prev, x, y);
+
+            for(unsigned j = 1; j < curvePointCount; j++) {
+                x = curvePoints[j].lon;
+                y = curvePoints[j].lat;
+
+                x_prev = curvePoints[j - 1].lon;
+                y_prev = curvePoints[j - 1].lat;
+
+                drawline(x_prev, y_prev, x, y);
+            }
+
+            drawline(curvePoints[curvePointCount - 1].lon, curvePoints[curvePointCount - 1].lat, x_to, y_to);
+        }
+    }
+}
+
+// Draws the searching path
+void drawSearchPath(int streetSegID) {
+    if (streetSegID != NO_EDGE) {
+                setcolor(SADDLEBROWN);
+                setlinewidth(3);
+                unsigned interFrom = mapStreetSeg.find(streetSegID)->second.getFrom();
+                unsigned interTo = mapStreetSeg.find(streetSegID)->second.getTo();
+                double x_prev = mapInterName.find(interFrom)->second.getLatLon().lon;
+                double y_prev = mapInterName.find(interFrom)->second.getLatLon().lat;
+                double x = mapInterName.find(interTo)->second.getLatLon().lon;
+                double y = mapInterName.find(interTo)->second.getLatLon().lat;
+                drawline(x_prev, y_prev, x, y);
+   }
+}
+
+// Finds the closest 2 (min 0) POIs based on string to a starting intersection
+vector<unsigned> find_close_POIs(unsigned startID, string POIname) {
+    // Retrieve all IDs belonging to a POI name
+    vector<unsigned> allPOIids = mapPOIID.find(POIname)->second.getIDs();
+    vector<unsigned> POIids;
+    priority_queue<distElem> POIpq;
+    unsigned count = 0;
+    
+    // Check if the POI is in our database
+    if (allPOIids.empty()) { 
+        return POIids; 
+    }
+    
+    LatLon startLL = mapInterName.find(startID)->second.getLatLon();
+    double distance;
+    
+    // Based on the distance from the start location, add the element into our queue
+    for (unsigned i = 0; i < allPOIids.size(); i++) {
+        distance = find_distance_between_two_points(startLL, mapPOIName.find(allPOIids[i])->second.getLatLon());
+        POIpq.push(distElem(allPOIids[i], distance));
+    }
+    
+    // Push (up to) the closest 2 POI's to our returning vector
+    while(!POIpq.empty() && count < 2) {
+        distElem temp = POIpq.top();
+        POIpq.pop();
+        POIids.push_back(temp.id);
+        count++;
+    }
+    
+    return POIids;
+}
+
+//finds the closest poi to the center of the screen
+unsigned find_closest_poi_to_center(std::vector<unsigned> currPOIs){
+    
+    //interestingly, ycenter provides the lon value & xcenter provides the lon value
+    float currentLocationLon= get_visible_world().get_ycenter();
+    float currentLocationLat=get_visible_world().get_xcenter();
+    
+    LatLon currentLocation(currentLocationLon, currentLocationLat);
+    
+    unsigned closestPOI=1;
+    double distanceAway=DISTANCE_MAX;
+    
+    for (auto iter= currPOIs.begin(); iter!=currPOIs.end(); iter++){
+        double findDistance= find_distance_between_two_points(currentLocation,mapPOIName.find(*iter)->second.getLatLon());
+        //LatLon hello = mapPOIName.find(*iter)->second.getLatLon();
+        if (findDistance<distanceAway){  
+            distanceAway=findDistance; 
+            closestPOI=(*iter);
+        }
+    }
+    return closestPOI;
+}

@@ -1,0 +1,21 @@
+#include "streetSeg.h"
+
+streetSeg::streetSeg(unsigned _id, StreetSegmentEnds _fromto, unsigned _speed, vector<LatLon> _cp) {
+    id = _id;
+    fromto = _fromto;
+    speed = _speed;
+    curvepoints = _cp;
+}
+
+unsigned streetSeg::getID() {
+    return id;
+}
+StreetSegmentEnds streetSeg::getEnds() {
+    return fromto;
+}
+unsigned streetSeg::getSpeed() {
+    return speed;
+}
+vector<LatLon> streetSeg::getCurves() {
+    return curvepoints;
+}

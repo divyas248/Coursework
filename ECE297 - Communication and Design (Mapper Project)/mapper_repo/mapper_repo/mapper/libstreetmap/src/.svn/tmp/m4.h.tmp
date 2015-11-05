@@ -1,0 +1,59 @@
+#pragma once
+#include <vector>
+
+#define MAX_ATTEMPTS 20
+#define INITIAL_TEMPERATURE 100.0
+#define MINIMUM_TEMPERATURE 0.1
+#define TEMP_FACTOR 0.95
+
+// This routine takes in a vector of N intersections that must be 
+// traversed in a path, and another vector of M intersections that 
+// are legal start and end points for the path. The first vector 
+// gives the intersection ids of a set of locations at which 
+// deliveries must be made. The second vector gives the intersection
+// ids of courier company depots containing trucks; you start at any
+// one of these depots and end at any one of the depots.
+// You can assume that N is always at least 1, and M is always at 
+// least one (i.e. both input vectors are non-empty).  You can also
+// assume that no intersection is repeated in either list and that
+// no intersection is both a delivery location and a depot (i.e. no
+// intersection will appear in both vectors).
+// This routine returns a vector of street segment ids that form a 
+// path, where the first street segment id is connected to a depot
+// intersection, and the last street segment id also connects to a
+// depot intersection.  If no path connecting all the delivery locations
+// and a start and end depot exists, this routine should return an 
+// empty (size == 0) vector.
+
+std::vector<unsigned> traveling_salesman(   std::vector<unsigned> & intersections_to_traverse, 
+                                            std::vector<unsigned> depot_locations   );
+
+// Returns a path based on the nearest neighbour heuristic
+std::vector<unsigned> nearest_neighbour(std::vector<unsigned> &);
+
+// Returns a path by connecting itself to the next intersection of
+// the parameter given
+std::vector<unsigned> connect_next(std::vector<unsigned> &);
+
+// Modifies a path using the two-opt heuristic
+std::vector<unsigned> two_opt(std::vector<unsigned> &, std::vector<unsigned> &);
+
+// As part of the two-opt heuristic, this is the main mechanism
+// that two-opt uses in order to sort and find a path
+<<<<<<< .mine
+std::vector<unsigned> two_opt_swap(std::vector<unsigned> &, int, int, std::vector<unsigned> &);
+
+// Returns a path using the simulated annealing heuristic
+std::vector<unsigned> simulated_annealing(std::vector<unsigned> &, std::vector<unsigned> &);
+
+// Computes the total distance of the intersections
+double compute_inter_distance(std::vector<unsigned> &);=======
+vector<unsigned> two_opt_swap(std::vector<unsigned> &, int, int, std::vector<unsigned> &);
+
+// Precompute the times between all combinations of points. Store these times in
+// a hash table.
+void preComputeTimes(vector<unsigned> deliveryIDs, vector<unsigned> depotIDs);
+
+// Helper function uses Dijkstra's algorithm to find distance from one source
+// to all other locations.
+void preComputeTimeHelper(unsigned source, set<unsigned> locations);>>>>>>> .r115

@@ -1,0 +1,270 @@
+#include "m1.h"
+#include "m2.h"
+#include "m3.h"
+#include "m4.h"
+#include "graphics.h"
+#include <cmath>
+#include <cfloat>
+#include <algorithm>
+#include <queue>
+
+unordered_map<unsigned, unordered_map<unsigned, double>> preComputedTimes;
+
+// Precompute the times between all combinations of points. Store these times in
+// a hash table.
+void preComputeTimes(vector<unsigned> deliveryIDs, vector<unsigned> depotIDs) {
+    // Combine all delivery locations and depots into one set.
+    set<unsigned> allPoints(depotIDs.begin(), depotIDs.end());
+    allPoints.insert(deliveryIDs.begin(), deliveryIDs.end());
+    
+    // Calculate all times from one location to all other locations.
+    for(auto iter = allPoints.begin(); iter != allPoints.end(); iter++) {
+        preComputeTimeHelper(*iter, allPoints);
+        clearInterFlags();
+    }   
+}
+
+// Helper function uses Dijkstra's algorithm to find distance from one source
+// to all other locations.
+void preComputeTimeHelper(unsigned source, set<unsigned> locations) {
+    unordered_map<unsigned, double> tempMapTimes;
+    priority_queue<waveElem> wavefront;
+    wavefront.push(waveElem(&(mapInterName.find(source)->second), NO_EDGE, 0.0));
+
+    unsigned count = 0;
+    double bestTime = FLT_MAX;
+    double leastEntryTime = 0.0;
+    
+    while ((!wavefront.empty()) && count < locations.size()) {
+        waveElem curr = wavefront.top();
+        unsigned currID = curr.interPtr->getID();
+        
+        // Remove node from the front of wavefront.
+        wavefront.pop();
+
+        // Checks to see if the wavefront travel time (current path) is better than
+        // any older path's travel time (saved from previous iterations).
+        if (leastEntryTime < curr.interPtr->travelTime) {
+            curr.interPtr->reachingEdge = curr.streetSegID;
+            curr.interPtr->travelTime = curr.travelTime;
+            
+            if (locations.find(currID) != locations.end()) { 
+                // Reached destination.
+                bestTime = curr.interPtr->travelTime;
+                count++;
+                
+                // Store in tempMapTimes.
+                tempMapTimes.insert(make_pair(currID, bestTime));
+            }
+            
+            vector<unsigned> streetSegIDs = mapInterName.find(currID)->second.getSSIDs();
+            
+            unsigned toID;
+            for (unsigned i = 0; i < streetSegIDs.size(); i++) {
+                // Checks which side of the street segment is adjacent, i.e. not our current node.
+                if (currID == mapStreetSeg.find(streetSegIDs[i])->second.getTo()) {
+                    toID = (mapStreetSeg.find(streetSegIDs[i])->second.getFrom());
+                }
+                
+                else {
+                    toID = mapStreetSeg.find(streetSegIDs[i])->second.getTo();
+                }
+                
+                // Check if our current node can reach the to node
+                if ( (!getStreetSegmentOneWay(streetSegIDs[i])) || (currID == mapStreetSeg.find(streetSegIDs[i])->second.getFrom())) {             
+                    // Initialize travel time and add current time
+                    double travelTime = mapStreetSeg.find(streetSegIDs[i])->second.getTravelTime();
+                    travelTime += curr.travelTime;
+                    
+                    // Check if the street name changes
+                    if ((curr.interPtr->reachingEdge != NO_EDGE) && (mapStreetSeg.find(curr.interPtr->reachingEdge)->second.getStreetName() != mapStreetSeg.find(streetSegIDs[i])->second.getStreetName())) {
+                        travelTime += STREET_CHANGE_DELAY / SECS_PER_MIN;
+                    }
+                    
+                    // Add the new intersection, the edge it took tor each and the travel time to the wavefront.
+                    wavefront.push(waveElem(&(mapInterName.find(toID)->second), (int) streetSegIDs[i], travelTime));     
+                }
+            }
+            
+            if (!wavefront.empty()) {
+                leastEntryTime = wavefront.top().travelTime;
+            }
+        }
+    }
+    
+    // Insert small hash table into larger, global hash table.
+    preComputedTimes.insert(make_pair(source, tempMapTimes));
+}
+
+vector<unsigned> traveling_salesman(vector<unsigned> & intersections_to_traverse, vector<unsigned> depot_locations) {
+    vector<unsigned> optimalPath;
+    //vector<unsigned> path = connect_next(intersections_to_traverse);
+    optimalPath = nearest_neighbour(intersections_to_traverse);
+    cout << "Nearest time: " << compute_path_travel_time(optimalPath) << endl;
+    
+    optimalPath = two_opt(intersections_to_traverse, optimalPath);
+    cout << "Two opt time: " << compute_path_travel_time(optimalPath) << endl;
+    
+    return optimalPath;
+}
+
+// Returns a path based on the nearest neighbor heuristic for TSP
+vector<unsigned> nearest_neighbour(vector<unsigned> & intersections) {
+    vector<unsigned> path;
+    vector<unsigned> tempPath;
+    vector<unsigned> inters;
+    set<unsigned> visitedInters;
+    double distance = 0;
+    double bestDistance = FLT_MAX;
+    unsigned bestInter = intersections[0];
+    
+    visitedInters.insert(bestInter);
+    inters.push_back(bestInter);
+    
+    for (unsigned i = 0; i < intersections.size(); i++) {
+        bestDistance = FLT_MAX;
+        LatLon currLatLon = mapInterName.find(bestInter)->second.getLatLon();
+        
+        for (unsigned j = 0; j < intersections.size(); j++) {
+            if (visitedInters.find(intersections[j]) == visitedInters.end()) {
+                LatLon nextLatLon = mapInterName.find(intersections[j])->second.getLatLon();
+                distance = find_distance_between_two_points(currLatLon, nextLatLon);
+                //cout << intersections[j] << " distance: " << distance << endl;
+                if (distance != 0 && distance < bestDistance) {
+                    bestDistance = distance;
+                    bestInter = intersections[j];
+                }
+            }
+        }
+        
+        if (visitedInters.find(bestInter) == visitedInters.end()) {
+            //cout << "Best: " << bestInter << endl;
+            visitedInters.insert(bestInter);
+            inters.push_back(bestInter);
+        }
+    }
+    
+    intersections = inters;
+    
+    for (unsigned i = 0; i < inters.size() - 1; i++) {
+        tempPath = find_path_between_intersections(inters[i], inters[i + 1]);
+        for (unsigned j = 0; j < tempPath.size(); j++) {
+            path.push_back(tempPath[j]);
+        }
+    }
+    
+    return path;
+}
+
+vector<unsigned> connect_next(vector<unsigned> & intersections) {
+    vector<unsigned> path;
+    vector<unsigned> tempPath;
+    
+    // Run through the intersections and connect all of them
+    for (unsigned i = 0; i < intersections.size() - 1; i++) {
+        tempPath = find_path_between_intersections(intersections[i], intersections[i + 1]);
+        for (unsigned j = 0; j < tempPath.size(); j++) {
+            path.push_back(tempPath[j]);
+        }
+    }
+    return path;
+}
+
+//////////////// Should consider passing less information, and using guesses
+//////////////// based on distance rather than computing path each time
+
+vector<unsigned> two_opt(vector<unsigned> & intersections, vector<unsigned> & path) {
+    unsigned improve = 0;
+    unsigned tries = MAX_ATTEMPTS;
+    double travelTime = compute_path_travel_time(path);
+    double tempTime = FLT_MAX;
+    vector<unsigned> optimalPath = path;
+    vector<unsigned> tempInter;
+    
+    if (intersections.size() < MAX_ATTEMPTS) {
+        tries = intersections.size();
+    }
+    
+    while (improve < tries) {
+        // Go through the intersections and perform two-opt
+        // Starts at the first node, and iterates through until 
+        // most combinations have been tested
+        for (int i = 0; i < (int) intersections.size() - 1; i++) {
+            for (int j = i + 1; j < (int) intersections.size(); j++) {
+                path = two_opt_swap(intersections, i, j, tempInter);
+                tempTime = compute_path_travel_time(path);
+
+                if (tempTime < travelTime) {
+                    cout << "from " << travelTime << " to " << tempTime << endl;
+                    improve = 0;
+                    // Take the new path as the best
+                    travelTime = tempTime;
+                    optimalPath = path;
+                    intersections = tempInter;
+                }
+
+                else {
+                    improve++;
+                }
+            }
+        }
+    }
+    
+    return optimalPath;
+}
+
+vector<unsigned> two_opt_swap(vector<unsigned> & interPath, int index1, int index2, vector<unsigned> & tempInter) {
+    vector<unsigned> newInter;
+    vector<unsigned> path;
+    
+    // Take path[0] and connect it to path[index1 - 1]
+    for (int i = 0; i < index1; i++) {
+        newInter.push_back(interPath[i]);
+    }
+    
+    // Take path[index1] and go till path[index2] and add them in reverse order to new route
+    for(int j = index2; j >= index1; j--) {
+        newInter.push_back(interPath[j]);
+    }
+    
+    // Take path [index2 + 1] till path.end() and add them.
+    for (int k = index2 + 1; k < (int) interPath.size(); k++) {
+        newInter.push_back(interPath[k]);
+    }
+    
+    // Assign the new path to our path-by-reference
+    tempInter = newInter;
+    path = connect_next(newInter);
+    
+    return path;
+}
+
+vector<unsigned> simulated_annealing(vector<unsigned> & intersections, vector<unsigned> & path) {
+    double temp = INITIAL_TEMPERATURE;
+    double oldTravelTime = compute_path_travel_time(path);
+    vector<unsigned> bestPath;
+    vector<unsigned> newPath;
+    
+    while (temp > MINIMUM_TEMPERATURE) {
+        
+        
+        temp *= TEMP_FACTOR;
+    }
+    
+    
+}
+
+double compute_inter_distance(vector<unsigned> & intersections) {
+    double distance = 0.0;
+    
+    // Adds distance between two intersection points for the vector
+    for (unsigned i = 0; i < intersections.size() - 1; i++) {
+        LatLon ll_1 = mapInterName.find(intersections[i])->second.getLatLon();
+        LatLon ll_2 = mapInterName.find(intersections[i + 1])->second.getLatLon();
+        
+        distance += find_distance_between_two_points(ll_1, ll_2);
+    }
+    
+    return distance;
+}
+

@@ -1,0 +1,22 @@
+#include "myData.h"
+
+using namespace std;
+
+myData::myData() {
+    id = 0;
+    ll = LatLon(NAN, NAN);
+}
+
+myData::myData(const myData& orig) {
+    id = orig.getID();
+    ll = orig.getLatLon();
+}
+
+myData::~myData() {
+}
+
+// Used constructor
+myData::myData(unsigned _id, LatLon _ll) {
+    id = _id;
+    ll = _ll;
+}

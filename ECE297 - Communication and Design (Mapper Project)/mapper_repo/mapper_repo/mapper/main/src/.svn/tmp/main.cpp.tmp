@@ -1,0 +1,28 @@
+#include "StreetsDatabaseAPI.h"
+#include "m1.h"
+#include <iostream>
+
+using namespace std;
+
+int main() {
+
+    load_map("/cad2/ece297s/public/maps/toronto.bin");
+    
+    
+    // try out your m1.h functions here
+    find_intersection_id_from_name("Warden Avenue (124)");
+    find_street_id_from_name("Yonge Street");
+    cout << getStreetName(38) << endl;
+    
+    vector<string> ss;
+    //ss = find_intersection_street_names("");
+    //cout << ss << endl;
+    ss = find_intersection_street_names(1000);
+    cout << ss << endl;
+    
+    
+    
+    close_map();
+    
+    return 0;
+}

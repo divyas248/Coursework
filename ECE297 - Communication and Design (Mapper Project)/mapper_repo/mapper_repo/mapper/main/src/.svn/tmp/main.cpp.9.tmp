@@ -1,0 +1,22 @@
+#include "StreetsDatabaseAPI.h"
+#include "m1.h"
+<<<<<<< .mine
+#include "m3.h"
+=======
+#include "m2.h"
+>>>>>>> .r85
+#include <iostream>
+#include <cstdlib>
+
+using namespace std;
+
+int main(){
+
+    //load intersection and street data about the city of Toronto
+    //load_map("/cad2/ece297s/public/maps/toronto.bin");
+    draw_map("/cad2/ece297s/public/maps/toronto.bin");
+
+    close_map();
+    
+    return 0;
+}

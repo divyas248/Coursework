@@ -1,0 +1,68 @@
+#pragma once
+#include <vector>
+#include <string>
+
+#define SECS_PER_HR 3600.0
+#define SECS_PER_MIN 60.0
+#define MINS_PER_HR 60.0
+#define STREET_CHANGE_DELAY 15.0
+#define NO_EDGE -1
+#define FAST_KM_PER_HR 100.0
+
+// Returns a path (route) between the start intersection and the end 
+// intersection, if one exists. If no path exists, this routine returns 
+// an empty (size == 0) vector. If more than one path exists, the path 
+// with the shortest travel time is returned. The path is returned as a vector 
+// of street segment ids; traversing these street segments, in the given order,
+// would take one from the start to the end intersection.
+std::vector<unsigned> find_path_between_intersections(unsigned 
+                   intersect_id_start, unsigned intersect_id_end);
+
+
+// Returns the time required to travel along the path specified. The path
+// is passed in as a vector of street segment ids, and this function can 
+// assume the vector either forms a legal path or has size == 0.
+// The travel time is the sum of the length/speed-limit of each street 
+// segment, plus 15 seconds per turn implied by the path. A turn occurs
+// when two consecutive street segments have different street names.
+double compute_path_travel_time(const std::vector<unsigned>& path);
+
+
+// Returns the shortest travel time path (vector of street segments) from 
+// the start intersection to a point of interest with the specified name.
+// If no such path exists, returns an empty (size == 0) vector.
+std::vector<unsigned> find_path_to_point_of_interest (unsigned 
+                   intersect_id_start, std::string point_of_interest_name);
+
+
+// Returns a boolean if a path is found, using Dijkstra's algorithm
+// Flags in MyInterData are set in order to provide "breadcrumbs" to find
+// the original path using the function bfsTraceBack
+bool bfsPath (MyInterData *source, int dest);
+
+// Traces back using the breadcrumbs left in bfsPath to return the
+// optimal path source to destination
+std::vector<unsigned> bfsTraceBack (int dest);
+
+// Resets the flags (reachingEdge and travelTime) in our MyInterData structure
+// as path-finding uses them
+void clearInterFlags(void);
+
+// A heuristic function for path-finding
+double heuristic(LatLon, LatLon, LatLon);
+
+// Draws the identified path
+void drawPath(vector<unsigned> &);
+
+// Draws the searching path
+void drawSearchPath(int);
+
+// Finds the closest 5 POIs based on string to a starting intersection
+<<<<<<< .working
+std::vector<unsigned> find_close_POIs(unsigned, std::string &);
+
+//finds the closest poi given an intersection
+unsigned find_closest_poi_to_center(std::vector<unsigned> currPOIs);
+
+unsigned find_closest_intersection_to_POI(double, double);=======
+std::vector<unsigned> find_close_POIs(unsigned, std::string);>>>>>>> .merge-right.r98

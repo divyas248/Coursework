@@ -1,0 +1,124 @@
+//Jan 18. Edgar Wang
+#include "m1.h"
+#include <vector>
+#include <unordered_map>
+#include <iostream>
+#include <algorithm>
+#include "../../libstreetsdatabase/src/LatLon.h"
+
+using namespace std;
+
+unordered_map <string, myInterData> nodeInter;
+unordered_map <string, myStreetData> nodeStreet;
+
+//load the map
+bool load_map(std::string map_name) {
+
+    bool load_success = loadStreetDatabaseBIN(map_name);
+    
+    unsigned numIntersections = getNumberOfIntersections();
+    
+    for(unsigned a = 0; a < numIntersections; a++) {
+        // Collect the intersection data.
+        string thisName = getIntersectionName(a);
+        LatLon thisLatLon = getIntersectionPosition(a);
+        myInterData thisIntersection = myInterData(a, thisLatLon);
+        nodeInter.insert(make_pair(thisName, thisIntersection));
+    }
+    
+    unsigned numStreetSegs = getNumberOfStreetSegments();
+    
+    for(unsigned b = 0; b < numStreetSegs; b++) {
+        // Collect the street data.
+        unsigned thisStreetID = getStreetSegmentStreetID(b);
+        string thisStreetName = getStreetName(thisStreetID);
+        
+        // Collect the street segment data.
+        StreetSegmentEnds thisFromTo = getStreetSegmentEnds(b);
+        double thisSpeedLimit = getStreetSegmentSpeedLimit(b);
+        unsigned curvePointCount = getStreetSegmentCurvePointCount(b);
+        vector<LatLon> curvePoints;
+        for(unsigned c = 0; c < curvePointCount; c++) {
+            curvePoints.push_back(getStreetSegmentCurvePoint(b, c));
+        }
+        
+        streetSeg thisStreetSeg(b, thisFromTo, thisSpeedLimit, curvePoints);
+        
+        auto iter = nodeStreet.find(thisStreetName);
+        if(iter == nodeStreet.end()) {
+            myStreetData thisStreet(thisStreetID, thisStreetSeg);
+            nodeStreet.insert(make_pair(thisStreetName, thisStreet));
+        }
+        
+        else {
+            iter->second.addStreetSeg(thisStreetSeg);
+        }
+        
+        // May need to add thisFromTo into nodeInter.
+    }
+
+    return load_success;
+}
+
+//close the map
+void close_map() {
+    closeStreetDatabase();
+    
+    // destroy any data structures you created in load_map
+    // ...
+}
+
+//implement the rest of the functions provided in m1.h
+// ...
+
+//function to return intersection id for an intersection name
+unsigned find_intersection_id_from_name(std::string intersection_name) {
+    auto iter = nodeInter.find(intersection_name);
+    if(iter == nodeInter.end()) {
+        cout << "Problem: intersection name does not exist!" << endl;
+        return getNumberOfIntersections() + 1;
+    }
+    
+    else {
+        return iter->second.getID();
+    }
+}
+
+//function to return street id for a street name
+unsigned find_street_id_from_name(string street_name) {
+    auto iter = nodeStreet.find(street_name);
+    if(iter == nodeStreet.end()) {
+        cout << "Problem: street name does not exist!" << endl;
+        return getNumberOfStreets() + 1;
+    }
+    
+    else {
+        cout << iter->second.getID() << endl;
+    }
+}
+
+//function to return street names at an intersection
+std::vector<std::string> find_intersection_street_names(std::string intersection_name) {
+    // Converting intersection name to an id
+    unsigned interID = find_intersection_id_from_name(intersection_name);
+    return find_intersection_street_names(interID);
+}
+
+std::vector<std::string> find_intersection_street_names(unsigned intersection_id) {
+    unsigned ssID, streetID;
+    string tempName = "";
+    vector<string> streetNames;
+    // Getting the number of street segments attached to intersection
+    unsigned ssNum = getIntersectionStreetSegmentCount(intersection_id);
+    
+    for (unsigned i = 0; i < ssNum; i++) {
+        ssID = getIntersectionStreetSegment(intersection_id, i);
+        streetID = getStreetSegmentStreetID(ssID);
+        tempName = getStreetName(streetID);
+        auto iter = find(streetNames.begin(), streetNames.end(), tempName);
+        if (iter == streetNames.end()) {
+            streetNames.push_back(tempName);
+        }
+    }
+    return streetNames;
+}

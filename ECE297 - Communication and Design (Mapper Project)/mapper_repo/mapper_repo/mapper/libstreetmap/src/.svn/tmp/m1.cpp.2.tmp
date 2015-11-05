@@ -1,0 +1,46 @@
+//Jan 18. Edgar Wang
+#include "m1.h"
+#include <vector>
+#include <unordered_map>
+#include "../../libstreetsdatabase/src/LatLon.h"
+
+using namespace std;
+
+unordered_map <string, myData> nodeMap;
+
+//load the map
+bool load_map(std::string map_name) {
+
+    bool load_success = loadStreetDatabaseBIN(map_name);
+    
+    unsigned numIntersections=getNumberOfIntersections();
+    
+    for (unsigned a=0;a< numIntersections;a++){
+        
+        //collect the Intersection Data
+        string thisName=getIntersectionName(a);
+        LatLon thisLatlon= getIntersectionPosition(a);
+        myData thisIntersection= myData(a, thisLatlon);
+        
+        //Send the Street Segment number to the myData class
+        unsigned tmpCount=getIntersectionStreetSegmentCount(a);
+        for (unsigned b=0;b<tmpCount;b++){
+            unsigned tmpSeg;
+            tmpSeg=getIntersectionStreetSegment(a,b);
+            thisIntersection.setOutVec(tmpSeg);
+                
+        }
+        nodeMap.insert(make_pair(thisName, thisIntersection));
+
+    } 
+
+    return load_success;
+}
+
+//close the map
+void close_map() {
+    closeStreetDatabase();
+    
+    // destroy any data structures you created in load_map
+    // ...
+}

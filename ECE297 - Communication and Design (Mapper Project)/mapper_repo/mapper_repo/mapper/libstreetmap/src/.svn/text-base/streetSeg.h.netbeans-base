@@ -1,0 +1,33 @@
+#ifndef STREETSEG_H
+#define	STREETSEG_H
+
+#include <vector>
+#include "../../libstreetsdatabase/src/LatLon.h"
+#include "../../libstreetsdatabase/src/StreetSegmentEnds.h"
+
+using namespace std;
+
+class streetSeg {
+public:
+    // Default constructors
+    streetSeg();
+    // Used constructor
+    streetSeg(unsigned, StreetSegmentEnds, unsigned, vector<LatLon>);
+    // Getters
+    unsigned getID();
+    StreetSegmentEnds getEnds();
+    unsigned getSpeed();
+    vector<LatLon> getCurves();
+private:
+    // Street segment ID
+    unsigned id;
+    // Intersection ID at each end of streetSeg
+    StreetSegmentEnds fromto;
+    // Speed limit
+    unsigned speed;
+    // Vector of LatLon's of curvepoints in streetSeg
+    vector<LatLon> curvepoints;
+};
+
+#endif	/* STREETSEG_H */
+

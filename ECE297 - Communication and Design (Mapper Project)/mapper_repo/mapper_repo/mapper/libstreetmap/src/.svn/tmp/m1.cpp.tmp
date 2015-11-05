@@ -1,0 +1,106 @@
+//Jan 18. Edgar Wang
+#include "m1.h"
+#include <vector>
+#include "../../libstreetsdatabase/src/LatLon.h"
+
+vector <myData> nodeVector;
+
+//load the map
+bool load_map(std::string map_name) {
+
+    bool load_success = loadStreetDatabaseBIN(map_name);
+    
+    unsigned numIntersections=getNumberOfIntersections();
+    
+    for (unsigned a=0;a< numIntersections;a++){
+        
+        //collect the Intersection Data
+        string thisName=getIntersectionName(a);
+        LatLon thisLatlon= getIntersectionPosition(a);
+        myData thisIntersection= myData(thisName, thisLatlon);
+        
+        //Send the Street Segment number to the myData class
+        unsigned tmpCount=getIntersectionStreetSegmentCount(a);
+        for (unsigned b=0;b<tmpCount;b++){
+            unsigned tmpSeg;
+            tmpSeg=getIntersectionStreetSegment(a,b);
+            thisIntersection.setOutVec(tmpSeg);
+                
+        }
+        nodeVector.push_back(thisIntersection);
+
+    } 
+
+    return load_success;
+}
+
+//close the map
+void close_map() {
+    closeStreetDatabase();
+    
+    // destroy any data structures you created in load_map
+    // ...
+}
+
+//function to return intersection id for an intersection name
+unsigned find_intersection_id_from_name(std::string intersection_name) {
+    
+}
+
+//function to return street id for an intersection name
+unsigned find_street_id_from_name(std::string street_name) {
+    
+}
+
+//function to return the street segments for a given intersection 
+std::vector<unsigned> find_intersection_street_segments(std::string intersection_name) {
+    
+}
+std::vector<unsigned> find_intersection_street_segments(unsigned intersection_id) {
+    
+}
+
+//function to return street names at an intersection
+std::vector<std::string> find_intersection_street_names(std::string intersection_name) {
+    
+}
+std::vector<std::string> find_intersection_street_names(unsigned intersection_id) {
+    
+}
+
+//can you get from intersection1 to intersection2 using a single street segment (hint: check for 1-way streets too)
+bool are_directly_connected(std::string intersection_name1, std::string intersection_name2) {
+    
+}
+
+//find all intersections connected by one street segment from given intersection (hint: check for 1-way streets too)
+std::vector<unsigned> find_adjacent_intersections(std::string intersection_name) {
+    
+}
+
+//for a given street, return all the street segments
+std::vector<unsigned> find_street_street_segments(std::string street_name) {
+    
+}
+
+//for a given street, find all the intersections
+std::vector<unsigned> find_all_street_intersections(std::string street_name) {
+    
+}
+
+//find distance between two coordinates
+double find_distance_between_two_points(LatLon point1, LatLon point2) {
+    
+}
+
+//find the length of a given street segments
+double find_street_segment_length(unsigned street_segment_id);
+
+//find the length of a whole street
+double find_street_length(std::string street_name);
+
+//find the travel time to drive a street segment (time(minutes) = distance(Km)/speed_limit(Km/h)*60)
+double find_segment_travel_time(unsigned street_segment_id);
+
+//find the nearest point of interest (by name) to a given position
+std::string find_closest_point_of_interest(LatLon my_position);

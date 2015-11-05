@@ -1,0 +1,29 @@
+#include "OutEdge.h"
+
+unsigned OutEdge::getStreetSegID() {
+    return streetSegID;
+}
+
+unsigned OutEdge::getStreetID() {
+    return streetID;
+}
+
+unsigned OutEdge::getSpeedLimit() {
+    return speedLimit;
+}
+unsigned OutEdge::getToNodeID() {
+    return toNodeID;
+}
+
+vector<LatLon> OutEdge::getCurvePoints() {
+    return curvePoints;
+}
+
+OutEdge::OutEdge(unsigned streetSegID_, unsigned streetID_, unsigned speedLimit_,
+    unsigned toNodeID_, vector<LatLon> curvePoints_) {
+    streetSegID = streetSegID_;
+    streetID = streetID_;
+    speedLimit = speedLimit_;
+    toNodeID = toNodeID_;
+    curvePoints = curvePoints_;
+}

@@ -1,0 +1,50 @@
+#include "StreetsDatabaseAPI.h"
+#include "m1.h"
+#include "m2.h"
+#include "m3.h"
+#include <iostream>
+#include <cstdlib>
+#include <readline/readline.h>
+#include <readline/history.h>
+
+using namespace std;
+
+int main(){
+
+    //load intersection and street data about the city of Toronto
+    
+    //OPENS A TERMINAL WINDOW CAN DO DIFFERENT COMMANDS FROM IT
+    //system("gnome-terminal --title=\"Pick a map\" -x sh -c 'cd; cd /cad2/ece297s/public/maps/; clear; ls; exec bash'");
+    
+    char* buf; //Buffer of line entered by user
+
+    while((buf = readline("Please enter a file path< ")) != NULL) { //Prompt the user for input
+        if(strcmp(buf, "") != 0) { //Only save non-empty commands
+            add_history(buf);
+        }
+        string result(buf);
+        
+        if (load_map(result))
+            draw_map(result);
+        else
+            cout<< "bad path, pls retry"<<endl;
+        //And exit if the user requested it
+        if(strcmp(buf, "exit") == 0 || strcmp(buf, "quit") == 0) {
+            break;
+        }
+
+        //readline generates a new buffer every time, 
+        //so we need to free the current one after we've finished
+        free(buf);
+        buf = NULL; //Mark it null to show we freed it
+    }
+    //draw_map("/cad2/ece297s/public/maps/toronto.bin");
+    //If the buffer wasn't freed in the main loop we need to free it now
+    // Note: if buf is NULL free does nothing
+    free(buf);
+    
+    close_map();
+    
+    return 0;
+}
+

@@ -1,0 +1,22 @@
+#include "myInterData.h"
+
+using namespace std;
+
+myInterData::myInterData() {
+    id = 0;
+    ll = LatLon(NAN, NAN);
+}
+
+myInterData::myInterData(const myInterData& orig) {
+    id = orig.getID();
+    ll = orig.getLatLon();
+}
+
+myInterData::~myInterData() {
+}
+
+// Used constructor
+myInterData::myInterData(unsigned _id, LatLon _ll) {
+    id = _id;
+    ll = _ll;
+}

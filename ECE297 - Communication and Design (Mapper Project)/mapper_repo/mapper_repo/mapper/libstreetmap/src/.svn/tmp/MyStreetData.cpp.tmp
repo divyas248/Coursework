@@ -1,0 +1,42 @@
+#include "MyStreetData.h"
+#include <iostream>
+// Adds a street segment into the vector of street segments belonging to the street
+void MyStreetData::addStreetSegID(unsigned _streetSegID) {
+    streetSegIDs.push_back(_streetSegID);
+}
+// Adds a intersection id to the vector of intersection ids
+void MyStreetData::addInterID(unsigned _interID) {
+    if(interIDs.find(_interID) == interIDs.end()) {
+        interIDs.insert(_interID);
+    }
+}
+// Retrieves street ID
+unsigned MyStreetData::getID() const {
+    return id;
+}
+// Retrieves the vector of all street segments belonging to the street
+vector<unsigned> MyStreetData::getStreetSegIDs() const {
+    return streetSegIDs;
+}
+// Retrieves vector of all intersections belonging to the street
+vector<unsigned> MyStreetData::getInterIDs() const {
+    return accessedInterIDs;
+}
+// Changes our set to vector, for return purposes
+<<<<<<< .mine
+void MyStreetData::setToVectorInterIDs() {
+    unsigned count = 0;
+    for (auto iter = interIDs.begin(); iter != interIDs.end(); iter++) {
+        count++;
+        accessedInterIDs.push_back(*iter);
+    }
+=======
+void MyStreetData::setToVectorInterIDs(vector<unsigned> _ids) {
+    accessedInterIDs = _ids;
+>>>>>>> .r48
+    cout << count << endl;
+}
+
+set<unsigned> MyStreetData::getIDSet() const {
+    return interIDs;
+}

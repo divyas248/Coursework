@@ -1,0 +1,770 @@
+#include "m1.h"
+#include "m2.h"
+#include "m3.h"
+#include "m4.h"
+#include "graphics.h"
+#include "easygl_constants.h"
+#include <string>
+#include <cmath>
+#include <cfloat>
+#include <X11/Xlib.h>
+#include <supportDataM2.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
+unsigned interStart;
+unsigned interEnd;
+int clickNum = FIRST;
+vector<unsigned> path;
+vector<unsigned> directionPath;
+vector<unsigned> intersectionsToVisit;
+vector<unsigned> depots;
+bool setSearched=0;
+LatLon searchID;
+bool setDirectionClicked=0;
+
+// Draws the map whose at map_path; this should be a .bin file.
+void draw_map(std::string map_path) {
+    intersectionsToVisit = {
+        334, 4904, 6868, 9693, 11584, 16073, 19450, 22197, 23666, 24352, 24756, 24837, 26373, 28349, 28760, 29864, 33378, 44271, 45997, 53528, 54101, 59155, 59257, 59823, 63019, 67387, 68370, 69112, 71050, 71395, 75438, 85427, 86482, 97085, 103839, 105650, 109689, 119610, 122014, 129738, 137740, 140247, 141616, 143665, 143872, 144521, 152618, 157705, 159225, 163352
+    };
+    
+    depots = {
+        6604, 15321, 30063, 57131, 77774, 97918, 102219, 103141, 160373, 160522
+    };
+    
+    path = traveling_salesman(intersectionsToVisit, depots);
+    
+    //Initialize arrays for the hover text feature.
+    for(unsigned t=0; t<HOVER_GRID; t++)
+        for(unsigned g=0; g<HOVER_GRID; g++) {
+            hoverGrid[t][g] = False;
+            hoverGridID[t][g] = 0;
+        }
+    
+    init_graphics("Team 040's Map", pale);
+    
+    set_visible_world(minLongitude, minLatitude, maxLongitude, maxLatitude);
+    
+    update_message(map_path);
+        
+    // Set up a area threshold to compare against.
+    t_bound_box tmpBoundBox(minLongitude, minLatitude, maxLongitude, maxLatitude);
+    initialArea = tmpBoundBox.area();
+    
+    event_loop(act_on_mousebutton, act_on_mousemove, NULL, draw_screen);
+    
+    close_graphics();
+}
+
+// Respond to users after mouse clicks. On the first two clicks, the nearest intersections
+// and the shortest path between them are found. To clear this saved path, right click.
+void act_on_mousebutton(float x, float y, t_event_buttonPressed button_info) {
+    // Determine what number the click is, and draw a marker at the nearest intersection.
+    if(button_info.button == LEFT_CLICK) {    
+        if(clickNum == FIRST) {
+            interStart = find_closest_intersection(x, y);
+            setcolor(PURPLE);
+            fillarc(x, y, POI_RADIUS, 0, 360);
+            clickNum = SECOND;
+            cout << "Starting location: " << mapInterName.find(interStart)->second.getName() << endl;
+        }
+        
+        else if(clickNum == SECOND) {
+            setDirectionClicked = 0;
+            draw_screen();
+            interEnd = find_closest_intersection(x, y);
+            setcolor(PURPLE);
+            fillarc(x, y, POI_RADIUS, 0, 360);
+            clickNum = CLEARED;
+            path = find_path_between_intersections(interStart, interEnd);   
+            
+            if(path.empty()) {
+                cout << "No path found. Please try again by right clicking." << endl;
+            }
+            
+            else {
+                // Print driving directions to the terminal
+                
+                // Save the 3 ID's connecting two paths (vectors) in order
+                // to find the direction to turn
+                unsigned firstID = interStart;
+                unsigned middleID;
+                unsigned lastID;
+                unsigned lastStreetID = mapStreetSeg.find(path[0])->second.getStreetID();
+                unsigned currentStreetID;
+                unsigned travelDistance = mapStreetSeg.find(path[0])->second.getLength();
+                
+                // Run through the path, starting at 1 (as 0 is accounted for)
+                for (unsigned i = 1; i < path.size(); i++) {
+                    // Assign the correct ID's for the next two intersections
+                    if (mapStreetSeg.find(path[i-1])->second.getFrom() == firstID)
+                        middleID = mapStreetSeg.find(path[i-1])->second.getTo();
+                    else 
+                        middleID = mapStreetSeg.find(path[i-1])->second.getFrom();
+                    if (mapStreetSeg.find(path[i])->second.getFrom() == middleID)
+                        lastID = mapStreetSeg.find(path[i])->second.getTo();
+                    else
+                        lastID = mapStreetSeg.find(path[i])->second.getFrom();
+                    
+                    LatLon fLL = mapInterName.find(firstID)->second.getLatLon();
+                    LatLon mLL = mapInterName.find(middleID)->second.getLatLon();
+                    LatLon lLL = mapInterName.find(lastID)->second.getLatLon();
+                    
+                    // Check if the street name changes
+                    currentStreetID = mapStreetSeg.find(path[i])->second.getStreetID();
+                    
+                    // Find the angle between the LatLon's to determine direction
+                    double angle = find_angle_between_LatLon(fLL, mLL, lLL);
+                    
+                    // If there is no street name change, no turns need to be specified
+                    // as the user can just follow the road
+                    if (lastStreetID != currentStreetID) {
+                        if (travelDistance != 0) {
+                            cout << "Travel for " << travelDistance << "m" << endl;
+                        }
+                        if (angle < 0) {
+                            cout << "Turn left on " << getStreetName(lastStreetID) << endl;
+                        }
+                        else if (angle > 0) {
+                            cout << "Turn right on " << getStreetName(lastStreetID) << endl;
+                        }
+                        lastStreetID = currentStreetID;
+                        travelDistance = 0;
+                    }
+
+                    travelDistance += mapStreetSeg.find(path[i])->second.getLength();
+                    firstID = middleID;
+                }
+                
+                if (travelDistance != 0) {
+                    cout << "Travel for " << travelDistance << "m" << endl;
+                }
+                cout << "You've reached: " << mapInterName.find(interEnd)->second.getName() << endl << endl;
+            }
+        }
+    }
+    
+    // Reset the screen and clicking variables.
+    else if(button_info.button == RIGHT_CLICK) {
+        clickNum = FIRST;
+        draw_screen();
+    }
+}
+
+// Helper function to find the nearest intersection after a mouse click.
+// Changes the x and y values that are given to the function to allow a marker to be drawn.
+int find_closest_intersection(float &x, float &y) {
+    double minDistance = FLT_MAX;
+    int interID = INVALID;
+    LatLon location(y, x);
+    
+    for (auto iter = mapInterID.begin(); iter != mapInterID.end(); iter++) {
+        // Find the distance between the clicked point and the intersection.        
+        double distance = find_distance_between_two_points(iter->second.getLatLon(), location);
+        
+        // Save the relevant information if the intersection is closer.
+        if (distance < minDistance){
+            minDistance = distance;
+            x = iter->second.getLatLon().lon;
+            y = iter->second.getLatLon().lat;
+            interID = iter->second.getID();
+        }
+    }
+    
+    return interID;
+}
+
+// Redraw the screen after each event loop.
+void draw_screen(void) {
+    clearscreen();
+    
+    // Draw all water (water, ponds, lakes, lagoons, rivers, and streams) features.
+    draw_water();
+    
+    // Draw the remaining closed features (woods, grasslands, sand, beaches, and islands).
+    draw_closed_features();
+    
+    // Find the coordinates of the current visible world.
+    t_bound_box boxCurrent = get_visible_world();
+    boxAreaCurrent = boxCurrent.area();
+    tmpLeft = boxCurrent.left();
+    tmpRight = boxCurrent.right();
+    tmpTop = boxCurrent.top();
+    tmpBot = boxCurrent.bottom(); 
+    
+    // ratioZoom gives the ratio of the current screen to the initial screen area.
+    float ratioZoom = (boxAreaCurrent / initialArea);
+    
+    // lengthBound is the limit based on the average street length.
+    float lengthBound = longestLength * ratioZoom;
+    
+    // Draw the streets based on the level of zoom.
+    draw_streets(ratioZoom, lengthBound, tmpLeft, tmpRight, tmpBot, tmpTop);
+
+    // Draw the searched path if there is one.
+    if(clickNum == 0) {
+        drawPath(path);
+    }
+    // Draw the searched direction path if found
+    if (setDirectionClicked==1){
+        drawPath(directionPath);
+    }
+    
+    // Draw the street names based on the level of zoom.
+    draw_street_names(ratioZoom, lengthBound, tmpLeft, tmpRight, tmpBot, tmpTop);
+    
+    // If a certain zoom threshold is passed, draw POIs.
+    if(ratioZoom < POI_THRESHOLD) {
+        draw_POI(tmpLeft, tmpRight, tmpBot, tmpTop);
+    }
+    
+    // Draw the searched location if there is one
+    if (setSearched==1 && ratioZoom<POI_THRESHOLD){
+        setcolor(BLUE);
+        fillarc(searchID.lon, searchID.lat, POI_RADIUS, 0, 360);
+    }
+    
+    drawPath(path);    
+    draw_intersections(intersectionsToVisit);
+}
+
+// Draw all water (water, ponds, lakes, lagoons, rivers, and streams) features.
+void draw_water(void) {
+    for(auto iter = mapFeatures.begin(); iter != mapFeatures.end(); iter++) {
+        string attribute = iter->second.getAttribute();
+        
+        // First, draw closed features.
+        if(attribute == "water" || attribute == "pond" || attribute == "lake" || attribute == "lagoon") {
+            t_point polyPoints[iter->second.getFeaturePointCount()];
+            
+            vector<LatLon> latLonPoints = iter->second.getVectorFeaturePoints();
+            
+            // Convert LatLon to x and y coordinates for t_point object, which is
+            // to be used by fillpoly.
+            for(unsigned i = 0; i < iter->second.getFeaturePointCount(); i++) {
+                polyPoints[i].x = latLonPoints[i].lon;
+                polyPoints[i].y = latLonPoints[i].lat;
+            }
+            
+            setcolor(LIGHTSKYBLUE);
+            fillpoly(polyPoints, iter->second.getFeaturePointCount());
+        }
+        
+        // Second, draw open features.
+        if(attribute == "river" || attribute == "stream") {
+            vector<LatLon> curvePoints = iter->second.getVectorFeaturePoints();
+            
+            setcolor(LIGHTSKYBLUE);
+            setlinewidth(1);
+            
+            unsigned curvePointCount = curvePoints.size();
+            
+            // Convert LatLon to x and y coordinates to be used by drawline.
+            // Iterate through curvePoints and save the previous coordinates
+            // to draw a continuous line.
+            for(unsigned i = 1; i < curvePointCount; i++) {
+                double x = curvePoints[i].lon;
+                double y = curvePoints[i].lat;
+                
+                double x_prev = curvePoints[i - 1].lon;
+                double y_prev = curvePoints[i - 1].lat;
+                
+                drawline(x_prev, y_prev, x, y);
+            }
+        }
+    }
+}
+
+// Draw the remaining closed features (woods, grasslands, sand, beaches, and islands).
+void draw_closed_features(void) {
+    for(auto iter = mapFeatures.begin(); iter != mapFeatures.end(); iter++) {
+        string attribute = iter->second.getAttribute();
+        
+        if(attribute == "wood" || attribute == "grassland" || attribute == "sand"
+                || attribute == "beach" || attribute == "island") {
+            
+            t_point polyPoints[iter->second.getFeaturePointCount()];
+            
+            vector<LatLon> latLonPoints = iter->second.getVectorFeaturePoints();
+            
+            // Convert LatLon to x and y coordinates for t_point object, which is
+            // to be used by fillpoly.
+            for(unsigned i = 0; i < iter->second.getFeaturePointCount(); i++) {
+                polyPoints[i].x = latLonPoints[i].lon;
+                polyPoints[i].y = latLonPoints[i].lat;
+            }
+            
+            if(attribute == "sand" || attribute == "beach") {
+                setcolor(KHAKI);
+            }
+            
+            else if(attribute == "wood" || attribute == "grassland") {
+                setcolor(LIMEGREEN);
+            }
+            
+            else if(attribute == "island") {
+                setcolor(pale);
+            }
+            
+            fillpoly(polyPoints, iter->second.getFeaturePointCount());
+        }
+    }
+}
+
+// Draw the streets based on the level of zoom.
+void draw_streets(float ratioZoom, float lengthBound, float tmpLeft, float tmpRight, float tmpBot, float tmpTop) {
+    for(auto iter = mapStreet.begin(); iter!= mapStreet.end(); iter++) {
+        string streetName = iter->first;
+        double streetLength = iter->second.getLength();
+        
+        // Get the average speed of the street.
+        vector<unsigned> segments = iter->second.getStreetSegIDs();
+        unsigned numSegments = segments.size();
+        unsigned streetSpeed = 0;
+        
+        if(numSegments != 0) {
+            for(auto segmentIter = segments.begin(); segmentIter!= segments.end(); segmentIter++) {
+                streetSpeed += mapStreetSeg.find(*segmentIter)->second.getSpeed();
+            }
+
+            streetSpeed = streetSpeed / numSegments;
+        }
+        
+        // First: check if the screen is zoomed in, if so draw everything.
+        // Second: draw all street segments that are part of the longest streets.
+        if((streetLength * SCALE_FACTOR > lengthBound && streetName != "(unknown)") || (ratioZoom < HIGH_ZOOM)
+                || (streetSpeed > FAST_ROAD_THRESHOLD)) { 
+            vector<unsigned> segments = iter->second.getStreetSegIDs();            
+            
+            for(auto segmentIter = segments.begin(); segmentIter!= segments.end(); segmentIter++) {
+                vector<LatLon> curvePoints = mapStreetSeg.find(*segmentIter)->second.getCurves();
+                double x_from = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getFrom()).lon;
+                double y_from = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getFrom()).lat;
+                
+                double x_to = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getTo()).lon;
+                double y_to = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getTo()).lat;
+                
+                // Only draw fast streets thicker and orange.
+                if(streetSpeed > FAST_ROAD_THRESHOLD) {
+                    setcolor(ORANGE);
+                    setlinewidth(5);
+                }
+                
+                // Draw medium length streets larger than small streets
+                else if(streetLength > MED_ROAD_LENGTH && ratioZoom < MED_ZOOM) {
+                    setcolor(WHITE);
+                    setlinewidth(3);
+                }
+                
+                else {
+                    setcolor(WHITE);
+                    setlinewidth(1);
+                }
+                
+                // Enable drawing only if a street lies in the screen.
+                if(curvePoints.empty() && (((x_from>tmpLeft)&& x_from<tmpRight) || (x_to>tmpLeft && x_to<tmpRight)) &&
+                        (((y_from>tmpBot)&& y_from<tmpTop) || (y_to>tmpBot && y_to<tmpTop))) {
+                    
+                    drawline(x_from, y_from, x_to, y_to);
+                }
+                
+                else if ((((x_from>tmpLeft)&& x_from<tmpRight) || (x_to>tmpLeft && x_to<tmpRight))&&(((y_from>tmpBot)&& y_from<tmpTop) ||
+                        (y_to>tmpBot && y_to<tmpTop))) {
+                    unsigned curvePointCount = curvePoints.size();
+                    
+                    // Draw from the "from" intersection to the first curvePoint.
+                    // Then iteratively draw lines between the curvePoints.
+                    // Finally, connect the last curvePoint to the "to" intersection.
+                    
+                    double x = curvePoints[0].lon;
+                    double y = curvePoints[0].lat;
+                    
+                    drawline(x_from, y_from, x, y);
+                    
+                    for(unsigned j = 1; j < curvePointCount; j++) {
+                        x = curvePoints[j].lon;
+                        y = curvePoints[j].lat;
+                        
+                        double x_prev = curvePoints[j - 1].lon;
+                        double y_prev = curvePoints[j - 1].lat;
+                        
+                        drawline(x_prev, y_prev, x, y);
+                    }
+                    
+                    drawline(curvePoints[curvePointCount - 1].lon, curvePoints[curvePointCount - 1].lat, x_to, y_to);
+                }  
+            }
+        }
+    }
+}
+
+// Draw the street names based on the level of zoom.
+void draw_street_names(float ratioZoom, float lengthBound, float tmpLeft, float tmpRight, float tmpBot, float tmpTop) {    
+    // Divide the screen into a grid, with each entry initialized to 0.
+    bool grid[NUM_GRID][NUM_GRID];
+    for(int i = 0; i < NUM_GRID; i++) {
+        for(int j = 0; j < NUM_GRID; j++) {
+            grid[i][j] = 0;
+        }
+    }
+    
+    for(auto iter = mapStreet.begin(); iter!= mapStreet.end(); iter++) {
+        string streetName = iter->first;
+        
+        // Truncate the street name if it is too long.
+        if(streetName.length() > MAX_NAME_LENGTH) {
+            streetName.erase(streetName.begin() + MAX_NAME_LENGTH - 3, streetName.end());
+            streetName = streetName + "...";
+        }
+
+        double streetLength = iter->second.getLength();
+        
+        // Get the average speed of the street.
+        vector<unsigned> segments = iter->second.getStreetSegIDs();
+        unsigned numSegments = segments.size();
+        unsigned streetSpeed = 0;
+        
+        if(numSegments != 0) {
+            for(auto segmentIter = segments.begin(); segmentIter!= segments.end(); segmentIter++) {
+                streetSpeed += mapStreetSeg.find(*segmentIter)->second.getSpeed();
+            }
+
+            streetSpeed = streetSpeed / numSegments;
+        }
+        
+        // First: check if the screen is zoomed in, if so draw everything.
+        // Second: draw all street segments that are part of the longest streets.
+        if((streetLength * SCALE_FACTOR > lengthBound && streetName != "(unknown)") || (ratioZoom < HIGH_ZOOM)
+                || (streetSpeed > FAST_ROAD_THRESHOLD)) { 
+            vector<unsigned> segments = iter->second.getStreetSegIDs();            
+            
+            for(auto segmentIter=segments.begin(); segmentIter!= segments.end(); segmentIter++) {
+                vector<LatLon> curvePoints = mapStreetSeg.find(*segmentIter)->second.getCurves();
+                double x_from = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getFrom()).lon;
+                double y_from = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getFrom()).lat;
+                
+                double x_to = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getTo()).lon;
+                double y_to = getIntersectionPosition(mapStreetSeg.find(*segmentIter)->second.getTo()).lat;
+                
+                // Draw the street name at the center of the street segment.
+                double x_avg, y_avg, degrees;
+                x_avg = (x_from + x_to) / 2;
+                y_avg = (y_from + y_to) / 2;
+                
+                // Calculate the angle at which to draw the text.
+                if(x_from <= x_to) {
+                    degrees = atan2(y_to - y_from, x_to - x_from) * RAD_TO_DEGREES;
+                }
+                
+                else {
+                    degrees = atan2(y_from - y_to, x_from - x_to) * RAD_TO_DEGREES;
+                }
+                
+                unsigned curvePointCount = curvePoints.size();
+                
+                if ((((x_from>tmpLeft)&& x_from<tmpRight) || (x_to>tmpLeft && x_to<tmpRight))&&(((y_from>tmpBot)&& y_from<tmpTop) ||
+                        (y_to>tmpBot && y_to<tmpTop)) && curvePointCount != 0) {                    
+                    double middle = floor(curvePointCount / 2);
+                    
+                    x_avg = curvePoints[middle].lon;
+                    y_avg = curvePoints[middle].lat;   
+                }
+                
+                // Determine the grid index at which the street name is drawn.
+                int x_index = floor((x_avg - tmpLeft) / ((tmpRight - tmpLeft) / (NUM_GRID - 1)));
+                int y_index = floor((y_avg - tmpBot) / ((tmpTop - tmpBot) / (NUM_GRID - 1)));
+                
+                if(!(x_index < 0 || x_index >= NUM_GRID || y_index < 0 || y_index >= NUM_GRID)) {
+                    // Do not draw the street name if it is unknown or off of the map.
+                    // Also, do not draw the street name if the grid index already has a drawn street name.
+                    
+                    if(streetName != "(unknown)" && (((x_from > tmpLeft && x_from < tmpRight) && 
+                            (y_from > tmpBot && y_from < tmpTop)) || ( (x_to > tmpLeft && x_to < tmpRight) && 
+                            (y_to > tmpBot && y_to < tmpTop))) && grid[x_index][y_index] == 0) {
+                            
+                        setcolor(BLACK);
+                        settextattrs(TEXT_FONT, degrees);
+
+                        // Always draw the street names for streets with a high speed limit.
+                        if(streetSpeed > FAST_ROAD_THRESHOLD) {
+                            drawtext(x_avg, y_avg, streetName, FLT_MAX, FLT_MAX);
+                        }
+
+                        // Draw relatively long streets after a certain level of zoom.
+                        else if(streetLength > MED_ROAD_LENGTH && ratioZoom < MED_ZOOM) {
+                            drawtext(x_avg, y_avg, streetName, FLT_MAX, FLT_MAX);
+                        }
+
+                        else {
+                            drawtext(x_avg, y_avg, streetName, abs(x_to - x_from) * LENGTH_SCALE, abs(y_to - y_from) * LENGTH_SCALE);
+                        }
+                        
+                        grid[x_index][y_index] = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Draw a red circle at all points of interest.
+void draw_POI(float tmpLeft, float tmpRight, float tmpBot, float tmpTop) {
+
+    for (unsigned t=0; t<HOVER_GRID; t++)
+        for (unsigned g=0; g<HOVER_GRID; g++){
+            hoverGrid[t][g] = False;
+            hoverGridID[t][g] = 0;
+        }
+            
+    float xDifferences = abs (tmpLeft-tmpRight)/HOVER_GRID;
+    float yDifferences = abs(tmpTop-tmpBot)/HOVER_GRID;
+    
+    for(auto iter = mapPOIName.begin(); iter!= mapPOIName.end(); iter++) {
+        double x = iter->second.getLatLon().lon;
+        double y = iter->second.getLatLon().lat;
+        
+        if(y > tmpBot && y < tmpTop && x > tmpLeft && x < tmpRight) {
+            string interestName = iter->second.getName();
+            setcolor(RED);
+            fillarc(x, y, POI_RADIUS, 0, 360);
+            
+            // This uses a grid to determine if a mouse is hovering over a region
+            unsigned xGridValue=int(floor(abs(x-tmpRight)/xDifferences))%HOVER_GRID;
+            unsigned yGridValue=int(floor(abs(y-tmpBot)/yDifferences))%HOVER_GRID;
+
+            // Tell the event loop which grid is being hovered over
+            hoverGrid[xGridValue][yGridValue]=true;
+            
+            // Tell the event loop which point of interest in the hovered over grid
+            hoverGridID[xGridValue][yGridValue]=iter->first;
+        }
+    }
+}
+
+// Given a POI ID print the text above it
+void draw_POI_text(unsigned id_poi) {
+    // Find the latlon of the poi and display the text there
+    float zoomRatio = boxAreaCurrent/initialArea;
+    
+    if(zoomRatio < POI_HOVER_THRESHOLD) {
+        LatLon textLatLon=mapPOIName.find(id_poi)->second.getLatLon();
+        string displayText=mapPOIName.find(id_poi)->second.getName();
+        
+        setcolor(BLACK);
+        settextattrs(TEXT_FONT, 0);
+        
+        // Create the text slightly above the POI
+        drawtext(textLatLon.lon, textLatLon.lat+HOVER_TEXT_OFFSET, displayText, FLT_MAX, FLT_MAX);
+        
+        // Change the poi colour to blue.
+        setcolor(BLUE);
+        fillarc(textLatLon.lon, textLatLon.lat, POI_RADIUS, 0, 360);
+    }
+}
+
+// Find the angle between three LatLon points
+double find_angle_between_LatLon(LatLon first, LatLon second, LatLon third) {
+    // Make two vectors (planar)
+    double v1x = second.lon - first.lon;
+    double v1y = second.lat - first.lat;
+    double v2x = third.lon - first.lon;
+    double v2y = third.lat - first.lat;
+    
+    // Calculate the angle, with reference to the x-axis
+    double angle1 = atan2(v1y, v1x);
+    double angle2 = atan2(v2y, v2x);
+    
+    // If the first angle is negative, and the other one is positive
+    // the direction flips, i.e. return the negative of the angle
+    if (angle1 < 0 && angle2 > 0) return angle2 - angle1;
+    
+    return angle1 - angle2;
+}
+
+//take a string parameter and zoom to it if it is a street or point of interest
+void 
+search(void (*drawscreen) (void)){
+    // Search function to be implemented in the future.   
+    //collect the searchquery
+    char* charSearchQuery;
+    charSearchQuery=readline("What would you like to search for? ");
+    
+    string searchQuery(charSearchQuery); 
+    //searchQuery=truncate_name(searchQuery);
+    
+    // identify if the query is a point of interest 
+    // or an intersection
+    auto searchIter = mapInterID.find(searchQuery);
+    if (searchIter!= mapInterID.end()){
+        //perform the search on the intersection
+        //collect the intersection latlon 
+        auto iter= mapInterID.find(searchQuery);
+        LatLon searchIntersection=iter->second.getLatLon();
+        float searchLon=searchIntersection.lon;
+        float searchLat=searchIntersection.lat;
+        
+        //zoom into the correct display box
+        set_visible_world(t_bound_box(searchLon-ZOOM_FOR_SEARCH, searchLat-ZOOM_FOR_SEARCH, searchLon+ZOOM_FOR_SEARCH, searchLat+ZOOM_FOR_SEARCH));
+        return;
+    }
+
+    
+    //searchIter= mapPOIID.find(searchQuery);
+    auto searchIter2=mapPOIID.find(searchQuery);
+    
+    if (searchIter2!=mapPOIID.end()){
+        auto iter2= mapPOIID.find(searchQuery);
+        //get the vector for the searched point
+        
+        clickNum = FIRST;
+        draw_screen();        
+        
+        vector <unsigned> currentPOI= iter2->second.getIDs();
+        LatLon searchPOI= mapPOIName.find(find_closest_poi_to_center(currentPOI))->second.getLatLon();
+        
+        float searchPOILon=searchPOI.lon;
+        float searchPOILat=searchPOI.lat;
+    
+        set_visible_world(t_bound_box(searchPOILon-ZOOM_FOR_SEARCH, searchPOILat-ZOOM_FOR_SEARCH, searchPOILon+ZOOM_FOR_SEARCH, searchPOILat+ZOOM_FOR_SEARCH));
+    
+        setcolor(BLACK);
+        settextattrs(TEXT_FONT, 0);
+        
+        // Create the text slightly above the POI
+        drawtext(searchPOILon, searchPOILat+HOVER_TEXT_OFFSET, iter2->first, FLT_MAX, FLT_MAX);
+        
+        // Change the poi colour to blue.
+        setcolor(BLUE);
+        fillarc(searchPOILon, searchPOILat, POI_RADIUS, 0, 360);
+        
+        //make the sure the feature in redrawn after the screen moves
+        setSearched=1;
+        searchID=searchPOI;
+        //turn off found directions
+        setDirectionClicked=0;
+
+    }
+    //The searched intersection or POI does not exist
+    else
+        cout<<"The searched intersection or POI does not exist!"<<endl;
+}
+
+//take a direction from and a direction to and display the path!
+void
+directions(void (*drawscreen) (void)){
+    //Take a from location
+    char* charSearchQuery;
+    
+    //find the from LatLon
+    charSearchQuery=readline("Please enter an Intersection: ");
+    string searchQueryFrom(charSearchQuery);
+    
+    if (mapInterID.find(searchQueryFrom) == mapInterID.end()){
+        cout<<"The intersection does not exist"<<endl;
+        return;
+    }
+    LatLon fromDestination=find_intersection_or_poi(searchQueryFrom);
+    
+    //find the to LatLon
+    charSearchQuery=readline("Please enter an Intersection or Point of Interest: ");
+    string searchQueryTo(charSearchQuery);
+    LatLon toDestination;
+
+    if (mapPOIID.find(searchQueryTo)!=mapPOIID.end()){
+        unsigned closestPOIsOrIntersection =find_ID_of_closest_POI(mapInterID.find(searchQueryFrom)->second.getID(),searchQueryTo);
+        toDestination=mapPOIName.find(closestPOIsOrIntersection)->second.getLatLon();
+        
+        //Highlight the To POI
+        setSearched=1;
+        searchID=toDestination;
+        setcolor(BLUE);
+        fillarc(toDestination.lon, toDestination.lat, POI_RADIUS, 0, 360);
+        
+    }
+    else if (mapInterID.find(searchQueryTo)!=mapInterID.end()){
+        unsigned closestPOIsOrIntersection =mapInterID.find(searchQueryTo)->second.getID();
+        toDestination= mapInterName.find(closestPOIsOrIntersection)->second.getLatLon();
+    }
+    else{
+        cout<<"The Intersection or POI does not exist"<<endl;
+        return;
+    }
+    
+    // From and To location latlons
+    float fromLon=fromDestination.lon;
+    float fromLat=fromDestination.lat;
+    float toLon= toDestination.lon;
+    float toLat=toDestination.lat;      
+
+    float zoomLeft,zoomRight,zoomTop,zoomBot;
+    
+    // if fromLon is left of to them adjust the left bound left of it
+    // toLon will then be used to adjust the right bound
+    
+    if (fromLon<toLon){
+        zoomLeft=fromLon-ZOOM_FOR_SEARCH;
+        zoomRight=toLon+ZOOM_FOR_SEARCH;
+    }
+    else{
+        zoomLeft=toLon-ZOOM_FOR_SEARCH;
+        zoomRight=fromLon+ZOOM_FOR_SEARCH;
+    }
+    
+    if (fromLat<toLat){
+        zoomBot=fromLat-ZOOM_FOR_SEARCH;
+        zoomTop=toLat+ZOOM_FOR_SEARCH;
+    }
+    else{
+        zoomBot=toLat-ZOOM_FOR_SEARCH;
+        zoomTop=fromLat+ZOOM_FOR_SEARCH;
+    }
+    
+    //create a box so the display is even(adjust the visible world)
+    //creates offsets so that the screen always displays the streets in a box shape
+    if (abs(zoomBot-zoomTop)> abs(zoomLeft-zoomRight)){
+        float differenceZoom=(abs(abs(zoomBot-zoomTop)- abs(zoomLeft-zoomRight)))/2;
+        zoomLeft-= differenceZoom;
+        zoomRight+= differenceZoom;
+    }
+    if (abs(zoomLeft-zoomRight)>abs(zoomBot-zoomTop)){
+        float differenceZoom2=(abs(abs(zoomLeft-zoomRight)-abs(zoomBot-zoomTop)))/2;
+        zoomTop+= differenceZoom2;
+        zoomBot-= differenceZoom2;
+    }
+    
+    set_visible_world(t_bound_box(zoomLeft, zoomBot, zoomRight, zoomTop));
+    
+    //find the path for the directions to draw and enable redrawing of it
+    
+    if (mapPOIID.find(searchQueryTo)!=mapPOIID.end())
+        directionPath= find_path_to_point_of_interest(mapInterID.find(searchQueryFrom)->second.getID(),searchQueryTo);
+    else
+        directionPath=find_path_between_intersections(mapInterID.find(searchQueryFrom)->second.getID(),mapInterID.find(searchQueryTo)->second.getID());
+    
+    //Draw the actual path
+    clickNum = FIRST;
+    draw_screen();
+    drawPath(directionPath);  
+    setDirectionClicked=1;
+    
+    return;
+
+}
+
+void draw_intersections(vector<unsigned> inters) {
+    for(unsigned i = 0; i < inters.size(); i++) {
+        double x = mapInterName.find(inters[i])->second.getLatLon().lon;
+        double y = mapInterName.find(inters[i])->second.getLatLon().lat;
+        //fillarc(x, y, POI_RADIUS*6, 0, 360);
+        settextattrs(TEXT_FONT*2, 0);
+        setcolor(BLACK);
+        drawtext(x, y, std::to_string(i), FLT_MAX, FLT_MAX);
+    }
+    
+    setcolor(LIMEGREEN);
+    fillarc(mapInterName.find(inters[0])->second.getLatLon().lon, mapInterName.find(inters[0])->second.getLatLon().lat, POI_RADIUS * 20, 0, 360);
+
+    setcolor(FIREBRICK);
+    fillarc(mapInterName.find(inters[inters.size()-1])->second.getLatLon().lon, mapInterName.find(inters[inters.size()-1])->second.getLatLon().lat, POI_RADIUS * 20, 0, 360);
+}

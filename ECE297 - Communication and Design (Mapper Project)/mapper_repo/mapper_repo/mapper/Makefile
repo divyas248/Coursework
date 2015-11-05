@@ -1,0 +1,235 @@
+#################################################
+# Configuration
+##################################################
+#Default build type
+CONF=debug
+
+#
+# Tool names
+#
+
+#The name of the compiler to use
+CXX = g++
+
+#Name of the archiver used to create .a from sets of .o files
+AR = ar
+
+#
+# Directories
+#
+
+#Directory for build temporaries
+BUILD_DIR = build
+
+#What directory contains the source files for the main exectuable?
+EXE_SRC_DIR = main/src
+
+#What directory contains the source files for the streets database static library?
+LIB_STREETSDATABASE_SRC_DIR = libstreetsdatabase/src
+
+#What directory contains the source files for the street map static library?
+LIB_STREETMAP_SRC_DIR = libstreetmap/src
+
+#What directory contains the source files for the street map library tests?
+LIB_STREETMAP_TEST_DIR = libstreetmap/tests
+
+#What directory contains the source files for osm2bin?
+OSM2BIN_SRC_DIR = osm_to_bin/src
+
+#
+# EasyGL Configuration
+#
+GRAPHICS_LIBS = -lX11 -lXft -lfontconfig
+GRAPHICS_FLAGS = $(shell pkg-config --cflags freetype2) # evaluates to the correct include flags for the freetype headers
+
+#
+# Compiler flags
+#
+
+#What warning flags should be passed to the compiler?
+WARN_FLAGS = -Wall
+
+#What include flags should be passed to the compiler?
+INCLUDE_FLAGS = -I$(LIB_STREETMAP_SRC_DIR) -I$(LIB_STREETSDATABASE_SRC_DIR) -I$(EXE_SRC_DIR) $(GRAPHICS_FLAGS) -I/opt/X11/include
+
+#What options to generate header dependancy files should be passed to the compiler?
+DEP_FLAGS = -MMD -MP
+
+#What extra flags to use in a debug build?
+# Defining _GLIBCXX_DEBUG enables vector [] bounds checking
+DEBUG_FLAGS = -g -O0 -D_GLIBCXX_DEBUG
+
+#What extra flags to use in a release build?
+RELEASE_FLAGS = -O3
+
+#Pick either debug or release build flags 
+ifeq (debug, $(CONF))
+DEBUG_RELEASE_FLAGS := $(DEBUG_FLAGS)
+else ifeq (release, $(CONF))
+DEBUG_RELEASE_FLAGS := $(RELEASE_FLAGS)
+else
+$(error Invalid value for CONF: '$(CONF)', must be 'debug' or 'release'. Try 'make help' for usage)
+endif
+
+#Collect all the options to give to the compiler
+CFLAGS = $(DEP_FLAGS) $(WARN_FLAGS) $(DEBUG_RELEASE_FLAGS) $(INCLUDE_FLAGS) --std=c++11
+
+
+#Flags for linking
+# -L. tells the linker to also look in the current directory
+LFLAGS = -L. -L/opt/x11/lib -L/usr/local/lib/boost
+LFLAGS_LIB_STREETSDATABASE = -lboost_serialization -lstreetsdatabase
+LFLAGS_LIB_STREETMAP = -lstreetmap -lreadline
+
+#
+# Archiver flags
+#
+
+#Flags for the archiver (used to create static libraries)
+ARFLAGS = rvs
+
+#
+#Output files
+#
+
+#Name of the primary executable
+EXE=mapper
+
+#Name of the test exectuable
+LIB_STREETMAP_TEST=test_libstreetmap
+
+#Name of the street map static library
+LIB_STREETMAP=libstreetmap.a
+
+#Name of the streets database static library
+LIB_STREETSDATABASE=libstreetsdatabase.a
+
+#Name of the osm to binary format converter
+OSM2BIN=osm2bin
+
+#
+# Generate object file names from source file names
+#
+
+#Objects associated with the main executable
+EXE_OBJ=$(patsubst %.cpp, $(BUILD_DIR)/$(CONF)/%.o,$(wildcard $(EXE_SRC_DIR)/*.cpp))
+
+#Objects associated with the streets database library
+LIB_STREETSDATABASE_OBJ=$(patsubst %.cpp, $(BUILD_DIR)/$(CONF)/%.o,$(wildcard $(LIB_STREETSDATABASE_SRC_DIR)/*.cpp))
+
+#Objects associated with the street map library
+LIB_STREETMAP_OBJ=$(patsubst %.cpp, $(BUILD_DIR)/$(CONF)/%.o,$(wildcard $(LIB_STREETMAP_SRC_DIR)/*.cpp))
+
+#Objects associated with tests for the street map library
+LIB_STREETMAP_TEST_OBJ=$(patsubst %.cpp, $(BUILD_DIR)/$(CONF)/%.o,$(wildcard $(LIB_STREETMAP_TEST_DIR)/*.cpp))
+
+#Objects associated with osm2bin
+OSM2BIN_OBJ=$(patsubst %.cpp, $(BUILD_DIR)/$(CONF)/%.o,$(wildcard $(OSM2BIN_SRC_DIR)/*.cpp))
+
+#
+# Depencancy files
+#
+
+#To capture dependancies on header files,
+# we told the compiler to generate dependancy 
+# files associated with each object file
+#
+#The ':.o=.d' syntax means replace each filename ending in .o with .d
+# For example:
+#   build/main/main.o would become build/main/main.d
+DEP = $(EXE_OBJ:.o=.d) $(LIB_STREETMAP_OBJ:.o=.d) $(LIB_STREETSDATABASE_OBJ:.o=.d) $(LIB_STREETMAP_TEST_OBJ:.o=.d) $(OSM2BIN_OBJ:.o=.d)
+
+#Phony targets are always run (i.e. are always out of date)
+#  We mark all executables and static libraries as phony so that they will
+#  always be re-built. This ensures that all final libraries/executables 
+#  will be of the same build CONF. This is important since using _GLIBCXX_DEBUG 
+#  can cause the debug and release builds to be binary incompatible, causing odd 
+#  errors if both debug and release components are mixed.
+.PHONY: clean $(EXE) $(LIB_STREETMAP_TEST) $(OSM2BIN) $(LIB_STREETMAP) $(LIB_STREETSDATABASE)
+
+##################################################
+# Make targets
+##################################################
+
+#The default target
+# This is called when you type 'make' on the command line
+all: $(EXE)
+
+#This runs the unit test executable
+test: $(LIB_STREETMAP_TEST)
+	@echo ""
+	@echo "Running Unit Tests..."
+	./$(LIB_STREETMAP_TEST)
+
+#Include header file dependancies generated by a
+# previous compile
+-include $(DEP)
+
+#Link main executable
+$(EXE): $(EXE_OBJ) $(LIB_STREETMAP) $(LIB_STREETSDATABASE)
+	$(CXX) $(CFLAGS) $^ $(LFLAGS) $(LFLAGS_LIB_STREETSDATABASE) $(LFLAGS_LIB_STREETMAP) $(GRAPHICS_LIBS) -o $@
+
+#Link test executable
+$(LIB_STREETMAP_TEST): $(LIB_STREETMAP_TEST_OBJ) $(LIB_STREETMAP) $(LIB_STREETSDATABASE)
+	$(CXX) $(CFLAGS) $^ $(LFLAGS) $(LFLAGS_LIB_STREETSDATABASE) $(LFLAGS_LIB_STREETMAP) -lunittest++ -o $@
+
+#Link osm2bin
+#$(OSM2BIN): $(OSM2BIN_OBJ) $(LIB_STREETSDATABASE)
+	#$(CXX) $(CFLAGS) $^ $(LFLAGS) $(LFLAGS_LIB_STREETSDATABASE) -lxerces-c -o $@
+
+#Street Map static library
+$(LIB_STREETMAP): $(LIB_STREETMAP_OBJ)
+	$(AR) $(ARFLAGS) $@ $^
+
+#Streets Database static library
+$(LIB_STREETSDATABASE): $(LIB_STREETSDATABASE_OBJ) 
+	$(AR) $(ARFLAGS) $@ $^
+
+#Note: % matches recursively between prefix and suffix
+#      so %.cpp would match both src/a/a.cpp
+#      and src/b/b.cpp
+$(BUILD_DIR)/$(CONF)/%.o: %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR)
+	rm -f $(EXE) $(LIB_STREETMAP) $(LIB_STREETSDATABASE) $(LIB_STREETMAP_TEST)
+	rm -f $(OSM2BIN)
+
+help:
+	@echo "Makefile for ECE297"
+	@echo ""
+	@echo "Usage: "
+	@echo '    > make'
+	@echo "        Call the default make target (all)."
+	@echo "        This builds the project executable: '$(EXE)'."
+	@echo "    > make clean"
+	@echo "        Removes any generated files including exectuables,"
+	@echo "        static libraries, and object files."
+	@echo "    > make test"
+	@echo "        Runs unit tests."
+	@echo "        Builds and runs any tests found in $(LIB_STREETMAP_TEST_DIR),"
+	@echo "        generating the test executable '$(LIB_STREETMAP_TEST)'."
+	#@echo "    > make osm2bin"
+	#@echo "        Creates the osm2bin utility for converting .osm map files"
+	#@echo "        to .bin files. Requires the xerces XML parsing library."
+	@echo "    > make help"
+	@echo "        Prints this help message."
+	@echo ""
+	@echo ""
+	@echo "Configuration Variables: "
+	@echo "    CONF={debug | release}"
+	@echo "        Controls whether the build performs compiler optimizations"
+	@echo "        to improve performance. Currently set to '$(CONF)'."
+	@echo ""
+	@echo "        With CONF=debug debugging symbols are turned on and,"
+	@echo "        compiler optimization is disabled ($(DEBUG_FLAGS))."
+	@echo ""
+	@echo "        With CONF=release compiler optimization is enabled ($(RELEASE_FLAGS))."
+	@echo ""
+	@echo "        You can configure specify this option on the command line."
+	@echo "        To perform a debug build you can use: "
+	@echo "            > make CONF=debug"
+	@echo "        To perform a release build you can use: "
+	@echo "            > make CONF=release"

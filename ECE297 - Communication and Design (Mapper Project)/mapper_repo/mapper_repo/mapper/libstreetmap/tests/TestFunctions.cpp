@@ -1,0 +1,69 @@
+#include <algorithm>
+#include <random>
+#include <unittest++/UnitTest++.h>
+#include "../../libstreetmap/tests/unit_test_util.h"
+#include "m1.h"
+
+
+// Unit tests for m1.h functions
+
+/*TEST(IntersectionDataConstructor) {
+    // Setup
+    const unsigned int id_ = 1000;
+    const LatLon ll_(1.0, 1.0);
+    
+    // Processing
+    MyInterData MID(id_, ll_);
+    LatLon tempLL = MID.getLatLon();
+    
+    // Verification
+    CHECK_EQUAL(MID.getID(), id_);
+    CHECK_EQUAL(tempLL.lat, ll_.lat);
+    CHECK_EQUAL(tempLL.lon, ll_.lon);
+}
+
+struct Map_Fixture {
+	Map_Fixture() {
+		//RNG Setup
+		rng = std::minstd_rand(0);
+		rand_intersection = std::uniform_int_distribution<unsigned>(0,getNumberOfIntersections()-1);
+		rand_street = std::uniform_int_distribution<unsigned>(0,getNumberOfStreets()-1);
+		rand_segment = std::uniform_int_distribution<unsigned>(0,getNumberOfStreetSegments()-1);
+	}
+	~Map_Fixture() {
+	}
+	std::minstd_rand rng;
+	std::uniform_int_distribution<unsigned> rand_intersection;
+	std::uniform_int_distribution<unsigned> rand_street;
+	std::uniform_int_distribution<unsigned> rand_segment;
+};
+
+
+TEST_FIXTURE(Map_Fixture, find_intersection_street_names_functionality) {
+    std::vector<std::string> result;
+    std::vector<std::string> expected_result;
+    
+    expected_result = {"Eglinton Avenue East", "Eglinton Avenue West", "Yonge Street"};
+    result = find_intersection_street_names(1648);
+    std::sort(result.begin(), result.end());
+    CHECK_EQUAL(result, expected_result);
+    result = find_intersection_street_names("Yonge Street & Eglinton Avenue East & Eglinton Avenue West");
+    std::sort(result.begin(), result.end());
+    CHECK_EQUAL(result, expected_result);
+    
+    expected_result = {"Adelaide Street West", "Bay Street"};
+    result = find_intersection_street_names(40201);
+    std::sort(result.begin(), result.end());
+    CHECK_EQUAL(result, expected_result);
+    result = find_intersection_street_names("Bay Street & Adelaide Street West");
+    std::sort(result.begin(), result.end());
+    CHECK_EQUAL(result, expected_result);
+    
+    expected_result = {"Bay Street", "College Street"};
+    result = find_intersection_street_names(5720);
+    std::sort(result.begin(), result.end());
+    CHECK_EQUAL(result, expected_result);
+    result = find_intersection_street_names("College Street & Bay Street");
+    std::sort(result.begin(), result.end());
+    CHECK_EQUAL(result, expected_result);
+}*/

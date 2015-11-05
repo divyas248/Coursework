@@ -1,0 +1,10 @@
+K 10
+svn:ignore
+V 78
+libstreetsdatabase.a
+libstreetmap.a
+mapper
+build
+.nfs0000000000cce3f9000002dd
+
+END

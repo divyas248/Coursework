@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="94">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="build">
+        <df name="release">
+          <df name="libstreetmap">
+            <df name="src">
+            </df>
+          </df>
+          <df name="libstreetsdatabase">
+            <df name="src">
+            </df>
+          </df>
+          <df name="main">
+            <df name="src">
+            </df>
+          </df>
+        </df>
+      </df>
+      <df name="libstreetmap">
+        <df name="src">
+          <in>MyInterData.cpp</in>
+          <in>MyInterData.h</in>
+          <in>MyPOI.cpp</in>
+          <in>MyPOI.h</in>
+          <in>MyStreetData.cpp</in>
+          <in>MyStreetData.h</in>
+          <in>MyStreetSegData.cpp</in>
+          <in>MyStreetSegData.h</in>
+          <in>distElem.h</in>
+          <in>easygl_constants.h</in>
+          <in>graphics.cpp</in>
+          <in>graphics.h</in>
+          <in>m1.cpp</in>
+          <in>m1.h</in>
+          <in>m2.cpp</in>
+          <in>m2.h</in>
+          <in>m3.cpp</in>
+          <in>m3.h</in>
+          <in>m4.cpp</in>
+          <in>m4.h</in>
+          <in>myFeatureData.cpp</in>
+          <in>myFeatureData.h</in>
+          <in>preCompData.h</in>
+          <in>supportDataM1.h</in>
+          <in>supportDataM2.h</in>
+          <in>timeEdges.h</in>
+          <in>waveElem.h</in>
+        </df>
+        <df name="tests">
+          <in>TestFunctions.cpp</in>
+          <in>m1_unittests.cpp</in>
+          <in>tester.cpp</in>
+          <in>unit_test_util.h</in>
+        </df>
+      </df>
+      <df name="libstreetsdatabase">
+        <df name="src">
+          <in>IntersectionGraph.cpp</in>
+          <in>IntersectionGraph.h</in>
+          <in>LatLon.h</in>
+          <in>Node.cpp</in>
+          <in>Node.h</in>
+          <in>OSMDatabase.cpp</in>
+          <in>OSMDatabase.h</in>
+          <in>OSMEntity.h</in>
+          <in>Relation.cpp</in>
+          <in>Relation.h</in>
+          <in>StreetSegmentEnds.h</in>
+          <in>StreetsDatabaseAPI.cpp</in>
+          <in>StreetsDatabaseAPI.h</in>
+          <in>Way.cpp</in>
+          <in>Way.h</in>
+        </df>
+      </df>
+      <df name="main">
+        <df name="src">
+          <in>main.cpp</in>
+        </df>
+      </df>
+    </df>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="Release" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="Unit_Test" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>

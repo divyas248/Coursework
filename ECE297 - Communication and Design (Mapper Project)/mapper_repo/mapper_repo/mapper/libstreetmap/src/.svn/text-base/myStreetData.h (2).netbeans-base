@@ -1,0 +1,28 @@
+#ifndef MYSTREETDATA_H
+#define	MYSTREETDATA_H
+#include <vector>
+#include "streetSeg.h"
+
+using namespace std;
+
+class myStreetData {
+public:
+    // Default constructors
+    myStreetData();
+    // Used constructor
+    myStreetData(unsigned _id, streetSeg ss) {id = _id; streetSegs.push_back(ss);}
+    // Pushes back streetSeg onto our streetSeg vector
+    void addStreetSeg(streetSeg);
+    // Getters
+    unsigned getID() const;
+    vector<streetSeg> getStreetSegs() const;
+    
+private:
+    // Street ID
+    unsigned id;
+    // Street segment info
+    vector<streetSeg> streetSegs;
+};
+
+#endif	/* MYSTREETDATA_H */
+
