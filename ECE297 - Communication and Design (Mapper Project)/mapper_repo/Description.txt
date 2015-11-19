@@ -3,7 +3,18 @@ ECE297 - Communication and Design Mapper Project
 Term long project to create a Geographical Information System (GIS) using C++, in a team of three. The team consisted of Johnson Dinh, Edgar Wang, and Eugene Sha (me).
 Four major milestones mark the separate parts implemented into the GIS.
 
-1. Using open-source data from the OpenStreetMap database (of which the instructors provided serialized data to save memory), data was processed and stored. An API was implemented in order to create a foundation for future developments.
-2. A GUI was implemented using easyGL API (instructors' simplified version of OpenGL). Incorporated natural elements to provide base colours and familiarity. Also displayed streets based on speed (highways were differentiated by colour), as well as street names for navigation. Further graphical functionality implementations such as icons for certain points-of-interests (restaurants, hospitals, landmarks, ...) and the ability to display and conceal text by hovering over the icons.
-3. Atop of the graphics interface, pathfinding algorithms were built in order to provide users with optimal pathfinding between two points. Dijkstra's algorithm was used on our graph, with edges weighted by time required to travel the street. To further improve upon Dijkstra's, A* was implemented to refine the search space when pathfinding.
-4. Finally, we implement heuristics to quickly achieve a local optimum to solve the travelling salesman problem. Our heuristic worked by using the simulated annealing algorithm to randomize results, which allowed for a expanded search space that was more limited over time, along with the 2-opt swap algorithm to find a local optimum in each iteration. 
+1. Using open-source data from the OpenStreetMap database (of which the instructors provided serialized data to save memory), data was processed and stored. 
+An API was implemented in order to create a foundation for future developments.
+
+2. A GUI was implemented using easyGL API (instructors' simplified version of OpenGL). 
+Incorporated natural elements to provide base colours and familiarity. 
+Also displayed streets based on speed (highways were differentiated by colour), as well as street names for navigation. 
+Further graphical functionality implementations such as icons for certain points-of-interests (restaurants, hospitals, landmarks, ...) and the ability to display and conceal text by hovering over the icons.
+
+3. Atop of the graphics interface, pathfinding algorithms were built in order to provide users with optimal pathfinding between two points. 
+Dijkstra's algorithm was used on our graph, with edges weighted by time required to travel the street. 
+To further improve upon Dijkstra's, A* was implemented to refine the search space when pathfinding.
+
+4. Finally, we implement heuristics to quickly achieve a local optimum to solve the travelling salesman problem. 
+Our heuristic worked by using the simulated annealing algorithm to randomize results, which allowed for a expanded search space that was more limited over time, 
+along with the 2-opt swap algorithm to find a local optimum in each iteration. 
